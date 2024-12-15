@@ -425,11 +425,367 @@ Explaination:
 
 ## 7. Drawing on your previous answers, and supporting your response with evidence (*e.g.* figures, maps, EDA/ESDA, and simple statistical analysis/models drawing on experience from, e.g., CASA0007), how *could* the InsideAirbnb data set be used to inform the regulation of Short-Term Lets (STL) in London? 
 
-::: {.duedate}
+### 7.1 set the data
 
-( 45 points; Answer due {{< var assess.group-date >}} )
+```{python}
+import re
+import nltk
+from wordcloud import WordCloud
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from urllib.parse import urlparse
+from requests import get
+```
 
-:::
+```{python}
+ddir = os.path.join('data', 'listings')  # Destination directory
+spath1 = 'https://data.insideairbnb.com/united-kingdom/england/london/2024-09-06/data/listings.csv.gz'
+spath2 = 'https://data.insideairbnb.com/united-kingdom/england/london/2024-09-06/data/reviews.csv.gz'
+file_path1 = cache_data(spath1, ddir)
+file_path2 = cache_data(spath2, ddir)
+```
+
+```{python}
+# load data
+df_listings = pd.read_csv(file_path1)
+df_reviews = pd.read_csv(file_path2)
+```
+
+```{python}
+# 1. remove missing data and duplicates in listings
+import matplotlib.pyplot as plt
+# Remove rows with missing amenities
+df_listings = df_listings.dropna(subset=['amenities'])
+
+# 2. Remove duplicates based on 'id' column in the Airbnb listings
+# This ensures we don't count the same listing multiple times
+final_listing = df_listings.drop_duplicates(subset='id')  # Use 'id' column to check duplicates
+
+# 3. transform data to geodataframe
+from shapely.geometry import Point
+final_listing  = gpd.GeoDataFrame(final_listing , 
+                geometry=[Point(x,y) for x, y in zip(final_listing .longitude,final_listing .latitude)])
+
+final_listing  = gpd.GeoDataFrame(final_listing ,
+      geometry=gpd.points_from_xy(final_listing .longitude, final_listing .latitude, crs='epsg:4326'))
+
+## reprojection
+gdf_final_listing  = final_listing.to_crs(epsg=27700)
+print(gdf_final_listing.crs)
+```
+
+```{python}
+#load london ward data
+ddir = os.path.join('data', 'geo')  # Destination directory
+spath3 = 'https://data.london.gov.uk/download/statistical-gis-boundary-files-london/08d31995-dd27-423c-a987-57fe8e952990/London-wards-2018.zip'
+file_path3 = cache_data(spath3, ddir)
+```
+
+```{python}
+import zipfile
+# unzip file
+with zipfile.ZipFile(file_path3, 'r') as zip_ref:
+    zip_ref.extractall(ddir)  
+
+print(f"Files extracted to: {ddir}")
+```
+
+```{python}
+london_ward = gpd.read_file(os.path.join(ddir, "London-wards-2018_ESRI", "London_Ward_CityMerged.shp"))
+london_ward = london_ward.to_crs(epsg=27700)
+```
+
+### 7.2 Digital Nomad Properties
+
+> 7.2.1 filter Digital Nomad Properties based on amenities
+
+```{python}
+# filter Digital Nomad Properties
+# Step 1: Define keywords for Digital Nomad Properties
+# # define keywords list，suitable for Digital Nomad Properties 
+required_keywords = ['wifi', 'internet']
+required_keywords2= ['chair']
+optional_keywords = r'\b(?:workspace|dedicated desk|monitor|ergonomic desk|meeting room|coworking space|' \
+                    r'quiet space|long-term stays allowed|adjustable lighting|coffee)\b'
+                    
+# Filter properties containing relevant keywords（based on amenities）
+dn_props = df_listings[
+    df_listings['amenities'].apply(lambda x: any(req_kw in x.lower() for req_kw in required_keywords) if pd.notnull(x) else False)  # at least one required_keywords
+    & df_listings['amenities'].apply(lambda x: any(req_kw in x.lower() for req_kw in required_keywords2) if pd.notnull(x) else False)
+    & df_listings['amenities'].str.contains(optional_keywords, regex=True, flags=re.IGNORECASE, na=False)  # at least one optional_keywords
+].copy()
+
+
+print(f"There are {dn_props.shape[0]:,} Digital Nomad Properties.")
+```
+
+```{python}
+# transform dn_props into geodattaframe
+from shapely.geometry import Point
+import matplotlib.pyplot as plt
+
+# create gdf data through longitude and latitude
+geometry = gpd.points_from_xy(dn_props['longitude'], dn_props['latitude'])
+
+# transform to GeoDataFrame
+gdf_dn = gpd.GeoDataFrame(dn_props, geometry=geometry)
+
+# set crs WGS84 (EPSG:4326)
+gdf_dn.set_crs(epsg=4326, inplace=True)
+gdf_dn = gdf_dn.to_crs(epsg=27700)
+# check
+# print(gdf_dn.head())
+```
+
+```{python}
+import matplotlib.pyplot as plt
+
+# create a scatter map
+fig, ax = plt.subplots(figsize=(8, 8))
+
+# draw the boundary of london wards
+london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
+
+# draw Digital Nomad Properties points
+gdf_dn.plot(ax=ax, marker="o", color="blue", markersize=10, alpha=0.7, label="Digital Nomad Properties")
+
+# add title and legend
+plt.title("Digital Nomad Properties in London", fontsize=16)
+plt.legend()
+
+# show the map
+plt.show()
+```
+
+> 7.2.2 calculate the density of Digital Nomad Properties
+
+```{python}
+# calculate the density of Properties in different themes
+# step 1: calculate the number of total listings in each ward
+## Calculate listings within each ward using intersection
+london_ward["total_listing"] = london_ward.geometry.apply(
+    lambda ward: gdf_final_listing[gdf_final_listing.intersects(ward)].index.tolist()
+)
+
+## Calculate the count of listings within each ward
+london_ward["listing_count"] = london_ward["total_listing"].apply(len)
+
+print(london_ward[["GSS_CODE", "NAME", "listing_count"]].head(10))
+```
+
+```{python}
+# step 2: for digital nomad properties:
+## 1. Calculate points within each ward using intersection
+london_ward["DN_List"] = london_ward.geometry.apply(
+    lambda ward: gdf_dn[gdf_dn.intersects(ward)].index.tolist()
+)
+
+## 2. Calculate the count of DN points within each ward
+london_ward["DN_Count"] = london_ward["DN_List"].apply(len)
+
+## 3. Calculate density 
+london_ward["DN_Density"] = london_ward["DN_Count"] / (london_ward["listing_count"])
+
+# 4. Inspect the results
+print(london_ward[["GSS_CODE", "DN_Count", "DN_Density"]].head())
+
+# 5.Plot density distribution
+fig, ax = plt.subplots(figsize=(8, 8))
+london_ward.plot(column="DN_Density", ax=ax, cmap="coolwarm", legend=True, 
+                 legend_kwds={"label": "Digital Nomad Properties Density"})
+plt.title("Digital Nomad Properties Density in London Wards", fontsize=16)
+plt.show()
+```
+
+> 7.2.3 spatial analysis for Digital Nomad Properties
+
+```{python}
+# calcualte spatial autocorrelation（Moran's I）
+# creating a spatial weights matrix
+from libpysal import weights
+import esda
+w = weights.Queen.from_dataframe(london_ward)
+w.transform = 'r'
+
+# calculate Moran's I
+y = london_ward['DN_Density'].values
+moran = esda.Moran(y, w)
+print(f"Moran's I: {moran.I}")
+print(f"p-value: {moran.p_sim}")
+```
+
+```{python}
+# Perform Local Moran's I Analysis
+lisa = esda.Moran_Local(y, w)
+
+threshold_p_value = 0.05
+london_ward['DN_label'] = np.where(
+    (lisa.p_sim < threshold_p_value) & (lisa.q == 1),
+    'Hotspot',
+    'Non-Hotspot'
+)
+
+# Plot LISA Results
+fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+london_ward[london_ward['DN_label'] == 'Hotspot'].plot(ax=ax, color='red', label='Hotspot')
+london_ward[london_ward['DN_label'] == 'Non-Hotspot'].plot(ax=ax, color='orange', label='Non-Hotspot')
+ax.set_title('Hotspot vs Non-Hotspot Areas for Digital Nomad Properties Density')
+handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Hotspot'),
+           plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='Non-Hotspot')]
+
+ax.legend(handles=handles, loc='lower left', fontsize=8, title="LISA Categories")
+plt.tight_layout()
+plt.show()
+```
+
+### 7.3 Scenic View Properties
+
+> 7.3.1 Filter Scenic View Properties
+
+```{python}
+# returns a data frame with all values set to True/False according to Null status
+df_reviews.isnull() 
+# counts these values by column (we'll see another option in a moment)
+df_reviews.isnull().sum(axis=0) 
+# Sort results in descending order
+df_reviews.isnull().sum(axis=0).sort_values(ascending=False) 
+```
+
+```{python}
+# Drop rows where 'comments' column has NaN values
+df_reviews = df_reviews.dropna(subset=['comments'])
+
+#Check the result
+df_reviews.isnull().sum(axis=0).sort_values(ascending=False) 
+```
+
+```{python}
+# Create the regular expression pattern for scenic views, landmarks, parks, museums, and famous places
+scenic_keywords = r'(?=scenic|landmark|iconic|museum|famous|historic|heritage|monument|well-known|popular|palace|tower|cathedral|gallery|London eye)'
+
+# Filter rows where the 'description' column contains any of the specified keywords
+scenic_landmark = df_reviews[
+    df_reviews.comments.str.contains(scenic_keywords, regex=True, flags=re.IGNORECASE)  # Apply regex
+]
+```
+
+```{python}
+# Get the number of rows in the filtered DataFrame
+num_rows = len(scenic_landmark)
+print(num_rows)
+```
+
+```{python}
+'''
+This is the dataset that have lat long and reviews based on the scenic view theme
+'''
+
+scenic_landmark.head(1)
+
+scenic_landmark_unique = scenic_landmark.drop_duplicates(subset='listing_id', keep='first')
+
+num_rows = len(scenic_landmark_unique)
+print(num_rows)
+```
+
+```{python}
+# Columns to select in listings
+columns_to_keep = ['id', 'name', 'host_id', 'latitude', 'longitude', 'room_type', 'price', 'availability_365']
+df_listings_selected = df_listings[columns_to_keep]
+
+# Perform an inner join
+df_inner_join = pd.merge(scenic_landmark_unique, df_listings_selected , left_on='listing_id', right_on='id', how='inner')
+num_rows = len(df_inner_join)
+print(num_rows)
+```
+
+```{python}
+# transform df_inner_join into geodataframe
+gdf_sv = gpd.GeoDataFrame(df_inner_join, 
+                geometry=[Point(x,y) for x, y in zip(df_inner_join.longitude,df_inner_join.latitude)])
+
+gdf_sv = gpd.GeoDataFrame(df_inner_join,
+      geometry=gpd.points_from_xy(df_inner_join.longitude, df_inner_join.latitude, crs='epsg:4326'))
+gdf_sv = gdf_sv.to_crs(epsg=27700)
+```
+
+```{python}
+# create a scatter map
+fig, ax = plt.subplots(figsize=(8, 8))
+
+# draw the boundary of london wards
+london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
+
+# draw Scenic View Properties points
+gdf_sv.plot(ax=ax, marker="o", color="blue", markersize=10, alpha=0.7, label="Scenic View Properties")
+
+# add title and legend
+plt.title("Scenic View Properties in London", fontsize=16)
+plt.legend()
+
+# show the map
+plt.show()
+```
+
+> 7.3.2 calculate the density of Scenic View Properties
+
+```{python}
+# 1. Calculate points within each ward using intersection
+london_ward["SV_List"] = london_ward.geometry.apply(
+    lambda ward: gdf_sv[gdf_sv.intersects(ward)].index.tolist()
+)
+
+# 2. Calculate the count of DN points within each ward
+london_ward["SV_Count"] = london_ward["SV_List"].apply(len)
+
+# 3. Calculate density
+london_ward["SV_Density"] = london_ward["SV_Count"] / (london_ward["listing_count"])
+
+# 4. Inspect the results
+print(london_ward[["GSS_CODE", "NAME", "SV_Count", "SV_Density"]].head())
+
+# 5.Plot density distribution
+fig, ax = plt.subplots(figsize=(8, 8))
+london_ward.plot(column="SV_Density", ax=ax, cmap="coolwarm", legend=True, 
+                 legend_kwds={"label": "Scenic View Properties Density"})
+plt.title("Scenic View Properties Density in London Wards", fontsize=16)
+plt.show()
+```
+
+> 7.2.3 spatial analysis for Digital Nomad Properties
+
+```{python}
+# calcualte spatial autocorrelation（Moran's I）
+# calculate Moran's I
+y = london_ward['SV_Density'].values
+moran = esda.Moran(y, w)
+print(f"Moran's I: {moran.I}")
+print(f"p-value: {moran.p_sim}")
+```
+
+```{python}
+# Perform Local Moran's I Analysis
+lisa = esda.Moran_Local(y, w)
+
+threshold_p_value = 0.05
+london_ward['SV_label'] = np.where(
+    (lisa.p_sim < threshold_p_value) & (lisa.q == 1),
+    'Hotspot',
+    'Non-Hotspot'
+)
+
+# Plot LISA Results
+fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+london_ward[london_ward['SV_label'] == 'Hotspot'].plot(ax=ax, color='red', label='Hotspot')
+london_ward[london_ward['SV_label'] == 'Non-Hotspot'].plot(ax=ax, color='orange', label='Non-Hotspot')
+ax.set_title('Hotspot vs Non-Hotspot Areas for Scenic View Properties Density')
+handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Hotspot'),
+           plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='Non-Hotspot')]
+
+ax.legend(handles=handles, loc='lower left', fontsize=8, title="LISA Categories")
+plt.tight_layout()
+plt.show()
+```
 
 ## Sustainable Authorship Tools
 
