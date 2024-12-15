@@ -661,7 +661,7 @@ df_reviews.isnull().sum(axis=0).sort_values(ascending=False)
 
 ```{python}
 # Create the regular expression pattern for scenic views, landmarks, parks, museums, and famous places
-scenic_keywords = r'(?=scenic|landmark|iconic|museum|famous|historic|heritage|monument|well-known|popular|palace|tower|cathedral|gallery|London eye)'
+scenic_keywords = r'(?=scenic|landmark|iconic|museum|famous|historic|heritage|monument|well-known|popular|kensington palace|buckingham palace|tower|cathedral|gallery|London eye)'
 
 # Filter rows where the 'description' column contains any of the specified keywords
 scenic_landmark = df_reviews[
