@@ -1,0 +1,414 @@
+---
+bibliography: bio.bib
+csl: harvard-cite-them-right.csl
+title: ANXX's Group Project
+execute:
+  echo: false
+  freeze: true
+format:
+  html:
+    code-copy: true
+    code-link: true
+    toc: true
+    toc-title: On this page
+    toc-depth: 2
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+  pdf:
+    include-in-header:
+      text: |
+        \addtokomafont{disposition}{\rmfamily}
+    mainfont: Spectral
+    sansfont: Roboto Flex
+    monofont: InputMonoCondensed
+    papersize: a4
+    geometry:
+      - top=25mm
+      - left=40mm
+      - right=30mm
+      - bottom=25mm
+      - heightrounded
+    toc: false
+    number-sections: false
+    colorlinks: true
+    highlight-style: github
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .qmd
+      format_name: quarto
+      format_version: '1.0'
+      jupytext_version: 1.16.4
+  kernelspec:
+    display_name: Python (base)
+    language: python
+    name: base
+---
+
+```{python}
+#| echo: false
+import os
+
+import pandas as pd
+```
+
+```{python}
+#| echo: false
+host = "https://orca.casa.ucl.ac.uk"
+path = "~jreades/data"
+file = "20240614-London-listings.parquet"
+
+if os.path.exists(file):
+    df = pd.read_parquet(file)
+else:
+    df = pd.read_parquet(f"{host}/{path}/{file}")
+    df.to_parquet(file)
+```
+
+```{python}
+#| output: asis
+print(
+    f"One of way to embed output in the text looks like this: after cleaning, we were left with {df.shape[0]:,} rows of data."
+)
+```
+
+This way is also supposed to work (`{python} f"{df.shape[0]:,}" `) but I've found it less reliable.
+
+```{python}
+ax = df.host_listings_count.plot.hist(bins=50)
+ax.set_xlim([0, 500]);
+```
+
+## 1. Who collected the InsideAirbnb data?
+
+::: {.duedate}
+
+The Inside Airbnb data is collected from Airbnb website through contributions from  public, various collaborators and partners with initial analysis by Murray Cox and web design for user experience led by John Morris. The website encourages more people who have experience working with community, activist groups or projects to participate in data collection.
+
+:::
+
+
+
+## 2. Why did they collect the InsideAirbnb data?
+
+::: {.duedate}
+
+InsideAirbnb aims to equip communities with data, offering transparency on the effects of Airbnb rentals on local housing markets. The website provides data and advocacy about short-term rental (Airbnb) impacts on residential communities, so that communities are empowered with data and information to understand, decide and control the role of renting residential homes to tourists.
+
+:::
+
+## 3. How did they collect it?
+
+::: 
+
+InsideAirbnb collected publicly accessible data compiled from the Airbnb web-site. The dataset represents a snapshot of listings available at a specific point in time (listings deleted by Airbnb will not appear). The collected data will be verified and cleansed,  such as outdated listings or incorrect entries. As mentioned in the website, InsideAirbnb acknowledges that listings can be deleted on the Airbnb platform implying that the data collection process is aware of the need to account for changes in availability, which would include removing listings that are no longer active. After cleansed and verified the data would be aggregated by excluding private information, which actually had been anonymized by Airbnb itself.
+
+:::
+
+## 4. How does the method of collection (Q3) impact the completeness and/or accuracy of the InsideAirbnb data? How well does it represent the process it seeks to study, and what wider issues does this raise?
+:::
+The method of data collection for InsideAirbnb impacts the completeness and accuracy of the data.
+In terms of completeness, InsideAirbnb collects data every three months, but short-term rental data changes frequently, including prices, availability, and other dynamic attributes. This infrequent collection may lead to gaps in capturing important details, resulting in incomplete representation of the market. Seasonal fluctuations, sudden spikes in listings due to events, or changes in host behavior could be missed. 
+In terms of accuracy, the data depends on Airbnb's public-facing information. If the data on Airbnb is wrong, then the data on InsideAirbnb will go wrong too. Secondly, while data collection ensures the privacy of each listing’s exact location, it sacrifices spatial precision, which limits its use for detailed spatial analysis. Additionally, self-reported attributes in the dataset may be inaccurate, as some hosts fail to update property availability or misrepresent their listings. For example, a host might mark a property as highly available even if they reside in the entire home/apartment. Last but not least, there is a significant ambiguity in Airbnb’s calendar data. The calendar does not distinguish between nights that are booked and nights marked unavailable by the host. Consequently, unavailable nights are often misinterpreted as booked nights, leading to overestimations of occupancy rates.
+:::
+
+## 5. What ethical considerations does the use of the InsideAirbnb data raise? 
+
+::: {.duedate}
+
+( 18 points; Answer due {{< var assess.group-date >}} )
+
+:::
+
+## 6. With reference to the InsideAirbnb data (*i.e.* using numbers, figures, maps, and descriptive statistics), what does an analysis of Hosts and the types of properties that they list suggest about the nature of Airbnb lettings in London? 
+
+> **Hypothesis  1: Hosts who manage multiple listings account for significant proportion of all hosts.**
+
+```{python}
+import os
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import matplotlib
+import matplotlib.font_manager
+import mapclassify
+import geopandas as gpd
+import requests
+```
+
+```{python}
+# Function to check if file exists and download it if not
+def check_and_download(url, out):
+    # check if data already exists
+    if os.path.isfile(out):
+        print(f"The file already exists at: {out}")
+    else:
+        print(f"The file does not exist. Downloading from {url}...")
+        response = requests.get(url)
+        if response.status_code == 200:
+            os.makedirs(os.path.dirname(out), exist_ok=True)  # Ensure the directory exists
+            with open(out, 'wb') as f:
+                f.write(response.content)
+            print(f"File successfully downloaded and saved to {out}")
+        else:
+            raise Exception(f"Failed to download file. HTTP status code: {response.status_code}")
+```
+
+```{python}
+# Set URL and output path
+url1 = 'https://data.insideairbnb.com/united-kingdom/england/london/2023-12-10/visualisations/listings.csv'
+url2 = 'https://data.insideairbnb.com/united-kingdom/england/london/2024-03-19/visualisations/listings.csv'
+url3 = 'https://data.insideairbnb.com/united-kingdom/england/london/2024-06-14/visualisations/listings.csv'
+url4 = 'https://data.insideairbnb.com/united-kingdom/england/london/2024-09-06/visualisations/listings.csv'
+out = os.path.join('data', 'listings.csv')
+
+# Use function to check and download data
+check_and_download(url1, out)
+new_name1 = os.path.join('data', 'listings_202312.csv') # Rename the file
+os.rename(out, new_name1)
+print(f"File renamed to: {new_name1}")
+df_202312 = pd.read_csv(new_name1)
+
+check_and_download(url2, out)
+new_name2 = os.path.join('data', 'listings_202403.csv') # Rename the file
+os.rename(out, new_name2)
+print(f"File renamed to: {new_name2}")
+df_202403 = pd.read_csv(new_name2)
+
+check_and_download(url3, out)
+new_name3 = os.path.join('data', 'listings_202406.csv') # Rename the file
+os.rename(out, new_name3)
+print(f"File renamed to: {new_name3}")
+df_202406 = pd.read_csv(new_name3)
+
+check_and_download(url4, out)
+new_name4 = os.path.join('data', 'listings_202409.csv') # Rename the file
+os.rename(out, new_name4)
+print(f"File renamed to: {new_name4}")
+df_202409 = pd.read_csv(new_name4)
+```
+
+```{python}
+# Select the required columns
+columns_to_select = ['room_type', 'calculated_host_listings_count']
+
+# Define group intervals
+bins = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, float('inf')]  # Group intervals
+labels = ['1', '2', '3', '4', '5', '6', '7', '8', '9','10+']  # Group labels
+# Filter columns and create groups for each DataFrame
+df_202312_filtered = df_202312[columns_to_select]
+df_202403_filtered = df_202403[columns_to_select]
+df_202406_filtered = df_202406[columns_to_select]
+df_202409_filtered = df_202409[columns_to_select]
+
+# Group by 'calculated_host_listings_count' using the defined bins and labels
+df_202312_filtered['group202312'] = pd.cut(df_202312_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
+df_202403_filtered['group202403'] = pd.cut(df_202403_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
+df_202406_filtered['group202406'] = pd.cut(df_202406_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
+df_202409_filtered['group202409'] = pd.cut(df_202409_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
+
+# Function to calculate the most popular room_type per group and host count per group
+def analyze_room_type(df, group_column):
+    # Calculate the number of hosts per group (count)
+    host_count = df.groupby(group_column)['room_type'].count()
+
+    # Calculate the most popular room_type per group
+    most_popular_room_type = df.groupby([group_column, 'room_type']).size().unstack(fill_value=0).idxmax(axis=1)
+
+    return host_count, most_popular_room_type
+
+# Analyze each DataFrame
+host_count_202312, popular_room_type_202312 = analyze_room_type(df_202312_filtered, 'group202312')
+host_count_202403, popular_room_type_202403 = analyze_room_type(df_202403_filtered, 'group202403')
+host_count_202406, popular_room_type_202406 = analyze_room_type(df_202406_filtered, 'group202406')
+host_count_202409, popular_room_type_202409 = analyze_room_type(df_202409_filtered, 'group202409')
+
+# Combine results into a single DataFrame
+summary_data = pd.DataFrame({
+    'number_of_property': labels,
+    '2023-12': host_count_202312.reindex(labels, fill_value=0),
+    '2024-03': host_count_202403.reindex(labels, fill_value=0),
+    '2024-06': host_count_202406.reindex(labels, fill_value=0),
+    '2024-09': host_count_202409.reindex(labels, fill_value=0),
+})
+
+# Find the most common room_type across all dataframes
+# Concatenate all room_type columns, then find the most frequent room type
+combined_room_types = pd.concat([popular_room_type_202312, popular_room_type_202403, popular_room_type_202406, popular_room_type_202409])
+most_common_room_type = combined_room_types.mode()[0]  # Most common room type
+
+# Add the most common room type to the summary
+summary_data['most_common_room_type'] = most_common_room_type
+```
+
+```{python}
+# pip install tabulate (if you haven't downloaded this package, run this code)
+import plotly.graph_objects as go
+
+# Create a Plotly DataTable for summary_data
+fig = go.Figure(data=[go.Table(
+    header=dict(values=['Number of Property', 'Number of hosts (2023-12)', 'Number of hosts (2024-03)', 'Number of hosts (2024-06)', 'Number of hosts (2024-09)', 'Most Common Room Type'],
+                fill_color='paleturquoise', align='center', font=dict(size=12, color='black')),
+    cells=dict(values=[summary_data['number_of_property'],
+                       summary_data['2023-12'],
+                       summary_data['2024-03'],
+                       summary_data['2024-06'],
+                       summary_data['2024-09'],
+                       summary_data['most_common_room_type']],
+               fill_color='lavender', align='center', font=dict(size=11, color='black'))
+)])
+
+# Update the layout for the table
+fig.update_layout(
+    title='Statistics for Hosts Grouped by Listings Count',
+    margin=dict(t=40, b=40, l=40, r=40),
+)
+
+# Show the interactive table
+fig.show()
+```
+
+Explaination: 
+
+> **Hypothesis 2: Entire home/ apartment distributed separated randomly in London**
+
+```{python}
+from requests import get
+from urllib.parse import urlparse
+
+def cache_data(src:str, dest:str) -> str:
+    """
+
+    *this creates function called cache_data so that it can store the data locally to reuse
+
+
+    """
+    url = urlparse(src) # We assume that this is some kind of valid URL
+    fn  = os.path.split(url.path)[-1] # Extract the filename q = (url.path)[??]
+    dfn = os.path.join(dest,fn) # Destination filename
+
+    if not os.path.isfile(dfn) or os.path.getsize(dfn) < 250: #Ensures the file exists or check whether the file size is smaller than 250byte > trigger download
+
+        print(f"{dfn} not found, downloading!")
+
+        path = os.path.split(dest)
+
+        if len(path) >= 1 and path[0] != '': #Verifies that the first part of the split (the directory) is not empty
+            os.makedirs(os.path.join(*path), exist_ok=True)
+
+        with open(dfn, "wb") as file:
+            response = get(src)
+            file.write(response.content) ##q = ??.content
+
+        print("\tDone downloading...")
+
+    else:
+        print(f"Found {dfn} locally!")
+
+    return dfn
+```
+
+```{python}
+#Load the Borough geopackage file
+ddir = os.path.join('data','geo') # destination directory
+spath = 'https://github.com/jreades/fsds/blob/master/data/src/' # source path
+boros = gpd.read_file( cache_data(spath+'Boroughs.gpkg?raw=true', ddir) )
+
+#Check the CRS
+boros.crs
+```
+
+```{python}
+#Convert Airbnb data into Geodataframe
+
+from shapely.geometry import Point
+gdf = gpd.GeoDataFrame(df,
+geometry=[Point(x,y) for x, y in zip(df.longitude,df.latitude)])
+
+gdf = gpd.GeoDataFrame(df,
+geometry=gpd.points_from_xy(df.longitude, df.latitude, crs='epsg:4326'))
+```
+
+```{python}
+#Change into British National Grid
+gdf = gdf.to_crs('epsg:27700')
+gdf.head(4)
+```
+
+```{python}
+# Create a pivot table to count the number of each room_type per borough
+pivot_table = gdf.pivot_table(index='neighbourhood', columns='room_type', aggfunc='size', fill_value=0)
+
+pivot_table['Total'] = pivot_table.sum(axis=1)
+
+# Sort by the Total column in descending order
+pivot_table = pivot_table.sort_values(by='Total', ascending=False)
+print(pivot_table)
+```
+
+```{python}
+# Reset the index of the pivot table to ensures that both DataFrames have a consistent structure
+pivot_table = pivot_table.reset_index()
+
+# Merge the pivot table with the boroughs GeoDataFrame
+boroughs_with_counts = boros.merge(pivot_table, how='left', left_on='NAME', right_on='neighbourhood')
+print(boroughs_with_counts.columns)
+```
+
+```{python}
+# Filter listings for 'Entire apartment'
+entire_apartments = gdf[gdf['room_type'] == 'Entire home/apt']
+
+# Group by borough and count the number of entire apartments
+borough_counts = entire_apartments.groupby('neighbourhood').size().reset_index(name='count')
+
+# Merge the count data with the borough geometries
+merged = boros.merge(borough_counts, left_on='NAME', right_on='neighbourhood')
+
+# Define custom breaks
+breaks = [206, 894, 1769, 3453, 5362, 8487]
+labels = ['206-894', '895-1769', '1770-3453', '3454-5362', '5363-8487']
+
+# Create a new column for the discrete categories
+merged['count_bins'] = pd.cut(merged['count'], bins=breaks, labels=labels, include_lowest=True)
+
+# Plot the data with custom breaks as discrete categories
+fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+merged.plot(column='count_bins', cmap='viridis', legend=True, ax=ax)
+
+plt.title('Number of Entire Apartments per Borough (Discrete Categories)')
+plt.show()
+
+# Additional plot: Bar plot of number of entire apartments per borough, sorted from highest to lowest
+borough_counts_sorted = borough_counts.sort_values(by='count', ascending=False)
+fig, ax2 = plt.subplots(figsize=(8, 3))
+ax2.bar(borough_counts_sorted['neighbourhood'], borough_counts_sorted['count'], color='skyblue', edgecolor='black')
+ax2.set_title('Count of Entire Home/Apartments per Borough (Sorted)')
+ax2.set_xlabel('Borough')
+ax2.set_ylabel('Count of Entire Home/Apartments')
+plt.xticks(rotation=90)
+plt.show()
+```
+
+Explaination: 
+
+## 7. Drawing on your previous answers, and supporting your response with evidence (*e.g.* figures, maps, EDA/ESDA, and simple statistical analysis/models drawing on experience from, e.g., CASA0007), how *could* the InsideAirbnb data set be used to inform the regulation of Short-Term Lets (STL) in London? 
+
+::: {.duedate}
+
+( 45 points; Answer due {{< var assess.group-date >}} )
+
+:::
+
+## Sustainable Authorship Tools
+
+Using the Terminal in Docker, you compile the Quarto report using `quarto render <group_submission_file>.qmd`.
+
+Your QMD file should automatically download your BibTeX and CLS files and any other required files. If this is done right after library loading then the entire report should output successfully.
+
+Written in Markdown and generated from [Quarto](https://quarto.org/). Fonts used: [Spectral](https://fonts.google.com/specimen/Spectral) (mainfont), [Roboto](https://fonts.google.com/specimen/Roboto) (<span style="font-family:Sans-Serif;">sansfont</span>) and [JetBrains Mono](https://fonts.google.com/specimen/JetBrains%20Mono) (`monofont`). 
+
+## References
