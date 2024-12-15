@@ -787,6 +787,92 @@ plt.tight_layout()
 plt.show()
 ```
 
+## 7.4. Close To Tube Properties
+
+### 7.4.1. Clip the Data
+
+```{python}
+# Filter data based on the "name" column containing specific phrases
+keywords = ['station', 'underground', 'overground', 'tube', 'DLR', 'line', 'metro']
+filtered_listings_transport = gdf_final_listing[gdf_final_listing['name'].str.contains('|'.join(keywords), case=False, na=False)]
+#clip data
+gdf_listings_transport_clipped = gpd.clip(gdf_final_listing, london_ward)
+gdf_listings_transport_clipped = gdf_listings_transport_clipped.set_crs(epsg=27700)
+```
+
+### 7.4.2. Visualise the Data on Map
+
+```{python}
+import matplotlib.pyplot as plt
+count = len(gdf_listings_transport_clipped)
+print(f"There are {count} properties in London.")
+
+# create a scatter map for Digital Nomad Properties
+fig, ax = plt.subplots(figsize=(8, 8))
+
+# draw the boundary of london wards
+london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
+
+# draw Digital Nomad Properties points
+gdf_listings_transport_clipped.plot(ax=ax, marker="o", color="blue", markersize=10, alpha=0.7, label="Transport  Properties")
+
+# add title and legend
+plt.title("Transport Friendly Properties in London", fontsize=16)
+plt.legend()
+
+# show the map
+plt.show()
+```
+
+#### 7.4.3. Count Tube by Ward
+
+```{python}
+# Spatial join to assign listings to wards
+ward_transport = london_ward.sjoin(gdf_listings_transport_clipped, how='left', predicate='contains')
+# Count the number of listings in each ward
+ward_transport = ward_transport.groupby('GSS_CODE').size().reset_index(name='listing_count')
+# Merge back with ward data
+ward_transport_final = london_ward.merge(ward_transport, how='left', left_on='GSS_CODE', right_on='GSS_CODE')
+
+print(ward_transport_final.head())
+```
+
+```{python}
+# Fill NaN values with 0 for wards with no listings
+ward_transport_final['listing_count_x'] = ward_transport_final['listing_count_x'].fillna(0)
+
+# Display results
+print(ward_transport_final[['GSS_CODE', 'listing_count_x']].head())
+
+# Visualize listings per ward on the map
+fig, ax = plt.subplots(figsize=(12, 8))
+ward_transport_final.plot(column='listing_count_x', cmap='OrRd', legend=True, ax=ax, edgecolor='black', alpha=0.7)
+ax.set_title("Tube Friendly listings by Ward", fontsize=16)
+ax.axis('off')
+plt.show()
+```
+
+#### 7.4.4. Calculate Spatial Autocorrelation
+
+```{python}
+# calcualte spatial autocorrelation（Moran's I）
+# creating a spatial weights matrix
+from libpysal import weights
+import esda
+w = weights.Queen.from_dataframe(ward_transport_final)
+w.transform = 'r'
+
+# calculate Moran's I
+y = ward_transport_final['listing_count_x'].values
+moran = esda.Moran(y, w)
+print(f"Moran's I: {moran.I}")
+print(f"p-value: {moran.p_sim}")
+```
+
+```{python}
+### 7.
+```
+
 ## Sustainable Authorship Tools
 
 Using the Terminal in Docker, you compile the Quarto report using `quarto render <group_submission_file>.qmd`.
