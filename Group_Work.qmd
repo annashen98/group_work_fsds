@@ -869,8 +869,30 @@ print(f"Moran's I: {moran.I}")
 print(f"p-value: {moran.p_sim}")
 ```
 
+### 7.4.5. Perform Local Moran I Analysis
+
 ```{python}
-### 7.
+# Perform Local Moran's I Analysis
+lisa = esda.Moran_Local(y, w)
+
+threshold_p_value = 0.05
+ward_transport_final['ward_label'] = np.where(
+    (lisa.p_sim < threshold_p_value) & (lisa.q == 1),
+    'Hotspot',
+    'Non-Hotspot'
+)
+# Plot LISA Results
+fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+ward_transport_final[ward_transport_final['ward_label'] == 'Hotspot'].plot(ax=ax, color='red', label='Hotspot')
+ward_transport_final[ward_transport_final['ward_label'] == 'Non-Hotspot'].plot(ax=ax, color='orange', label='Non-Hotspot')
+ax.set_title('Hotspot vs Non-Hotspot Areas for Tube Friendly Properties in London')
+handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Hotspot'),
+           plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='Non-Hotspot')]
+ax.set_xlabel('Longitude')
+ax.set_ylabel('Latitude')
+ax.legend(handles=handles, loc='lower left', fontsize=8, title="LISA Categories")
+plt.tight_layout()
+plt.show()
 ```
 
 ## Sustainable Authorship Tools
