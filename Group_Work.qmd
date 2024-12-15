@@ -322,25 +322,33 @@ boros.crs
 ```
 
 ```{python}
+#Combining all the data
+combined_df = pd.concat([df_202312, df_202403, df_202406, df_202409], ignore_index=True)
+# Get the total number of columns
+num_columns = combined_df.shape[0]
+print(f"Total number of columns: {num_columns}")
+```
+
+```{python}
 #Convert Airbnb data into Geodataframe
 
 from shapely.geometry import Point
-gdf = gpd.GeoDataFrame(df,
-geometry=[Point(x,y) for x, y in zip(df.longitude,df.latitude)])
+combined_df = gpd.GeoDataFrame(combined_df,
+geometry=[Point(x,y) for x, y in zip(combined_df.longitude,combined_df.latitude)])
 
-gdf = gpd.GeoDataFrame(df,
-geometry=gpd.points_from_xy(df.longitude, df.latitude, crs='epsg:4326'))
+combined_df = gpd.GeoDataFrame(combined_df,
+geometry=gpd.points_from_xy(combined_df.longitude, combined_df.latitude, crs='epsg:4326'))
 ```
 
 ```{python}
 #Change into British National Grid
-gdf = gdf.to_crs('epsg:27700')
-gdf.head(4)
+combined_gdf = combined_df.to_crs('epsg:27700')
+combined_gdf.head(1)
 ```
 
 ```{python}
 # Create a pivot table to count the number of each room_type per borough
-pivot_table = gdf.pivot_table(index='neighbourhood', columns='room_type', aggfunc='size', fill_value=0)
+pivot_table = combined_gdf.pivot_table(index='neighbourhood', columns='room_type', aggfunc='size', fill_value=0)
 
 pivot_table['Total'] = pivot_table.sum(axis=1)
 
@@ -359,37 +367,57 @@ print(boroughs_with_counts.columns)
 ```
 
 ```{python}
-# Filter listings for 'Entire apartment'
-entire_apartments = gdf[gdf['room_type'] == 'Entire home/apt']
+boroughs_with_counts = boroughs_with_counts.to_crs(epsg=27700)
 
-# Group by borough and count the number of entire apartments
-borough_counts = entire_apartments.groupby('neighbourhood').size().reset_index(name='count')
+import mapclassify as mc
 
-# Merge the count data with the borough geometries
-merged = boros.merge(borough_counts, left_on='NAME', right_on='neighbourhood')
+# Classify the data using Natural Breaks
+classifier = mc.NaturalBreaks(boroughs_with_counts['Entire home/apt'], k=5)  # k is the number of classes
+boroughs_with_counts['natural_breaks'] = classifier.yb  # Assign classification labels to a new column
 
-# Define custom breaks
-breaks = [206, 894, 1769, 3453, 5362, 8487]
-labels = ['206-894', '895-1769', '1770-3453', '3454-5362', '5363-8487']
+# Define custom breaks and labels
+breaks = [798, 3473, 6660, 13245, 20530, 32696]  # One extra edge to create 5 bins
+labels = ['798-3472', '3473-6659', '6660-13244', '13245-20529', '20530-32695']  # Match the number of bins - 1
 
-# Create a new column for the discrete categories
-merged['count_bins'] = pd.cut(merged['count'], bins=breaks, labels=labels, include_lowest=True)
+# Classify the data using pd.cut
+boroughs_with_counts['natural_breaks'] = pd.cut(
+    boroughs_with_counts['Entire home/apt'],
+    bins=breaks,
+    labels=labels,
+    include_lowest=True
+)
 
-# Plot the data with custom breaks as discrete categories
-fig, ax = plt.subplots(1, 1, figsize=(10, 8))
-merged.plot(column='count_bins', cmap='viridis', legend=True, ax=ax)
+# Plot the map with custom breaks
+fig, ax = plt.subplots(figsize=(8, 6))
+boroughs_with_counts.plot(
+    column='natural_breaks',
+    cmap='viridis',
+    legend=True,
+    edgecolor='black',
+    ax=ax
+)
 
-plt.title('Number of Entire Apartments per Borough (Discrete Categories)')
+# Customize the legend
+legend = ax.get_legend()
+legend.set_title('Entire Home/Apt Count (Range)')
+legend.set_loc('upper right')          # Center align the legend
+
+# Title and adjustments
+ax.set_title('Number of Entire Apartments per Borough (Custom Ranges)')
+plt.tight_layout()
+plt.savefig('map_entire_apartments_custom_breaks.png', dpi=300, bbox_inches='tight')  # Save the map
 plt.show()
 
-# Additional plot: Bar plot of number of entire apartments per borough, sorted from highest to lowest
-borough_counts_sorted = borough_counts.sort_values(by='count', ascending=False)
-fig, ax2 = plt.subplots(figsize=(8, 3))
-ax2.bar(borough_counts_sorted['neighbourhood'], borough_counts_sorted['count'], color='skyblue', edgecolor='black')
+# Optional: Bar plot of number of entire apartments per borough
+boroughs_with_counts = boroughs_with_counts.sort_values(by='Entire home/apt', ascending=False)
+
+fig, ax2 = plt.subplots(figsize=(8, 5))
+ax2.bar(boroughs_with_counts['neighbourhood'], boroughs_with_counts['Entire home/apt'], color='skyblue', edgecolor='black')
 ax2.set_title('Count of Entire Home/Apartments per Borough (Sorted)')
 ax2.set_xlabel('Borough')
 ax2.set_ylabel('Count of Entire Home/Apartments')
 plt.xticks(rotation=90)
+plt.tight_layout()
 plt.show()
 ```
 
