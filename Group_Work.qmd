@@ -80,6 +80,32 @@ ax = df.host_listings_count.plot.hist(bins=50)
 ax.set_xlim([0, 500]);
 ```
 
+```{python}
+import requests
+
+# URLs for the .bib and .csl files
+bib_url = "https://raw.githubusercontent.com/annashen98/group_work_fsds/65928e9bf22ec3080a250419132bdd9fd2e5c288/references.bib"
+csl_url = "https://raw.githubusercontent.com/annashen98/group_work_fsds/65928e9bf22ec3080a250419132bdd9fd2e5c288/harvard-cite-them-right.csl"
+
+# Download the references.bib file
+response_bib = requests.get(bib_url)
+if response_bib.status_code == 200:
+    with open("references.bib", "wb") as f:
+        f.write(response_bib.content)
+    print("Downloaded references.bib successfully.")
+else:
+    print(f"Failed to download references.bib. Status code: {response_bib.status_code}")
+
+# Download the harvard-cite-them-right.csl file
+response_csl = requests.get(csl_url)
+if response_csl.status_code == 200:
+    with open("harvard-cite-them-right.csl", "wb") as f:
+        f.write(response_csl.content)
+    print("Downloaded harvard-cite-them-right.csl successfully.")
+else:
+    print(f"Failed to download harvard-cite-them-right.csl. Status code: {response_csl.status_code}")
+```
+
 ## 1. Who collected the InsideAirbnb data?
 
 ::: {.duedate}
