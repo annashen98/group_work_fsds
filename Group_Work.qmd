@@ -454,8 +454,9 @@ df_reviews = pd.read_csv(file_path2)
 ```{python}
 # 1. remove missing data and duplicates in listings
 import matplotlib.pyplot as plt
-# Remove rows with missing amenities
+# Remove rows with missing amenities and description
 df_listings = df_listings.dropna(subset=['amenities'])
+df_listings = df_listings.dropna(subset=['description'])
 
 # 2. Remove duplicates based on 'id' column in the Airbnb listings
 # This ensures we don't count the same listing multiple times
@@ -509,10 +510,10 @@ optional_keywords = r'\b(?:workspace|dedicated desk|monitor|ergonomic desk|meeti
                     r'quiet space|long-term stays allowed|adjustable lighting|coffee)\b'
                     
 # Filter properties containing relevant keywords（based on amenities）
-dn_props = df_listings[
-    df_listings['amenities'].apply(lambda x: any(req_kw in x.lower() for req_kw in required_keywords) if pd.notnull(x) else False)  # at least one required_keywords
-    & df_listings['amenities'].apply(lambda x: any(req_kw in x.lower() for req_kw in required_keywords2) if pd.notnull(x) else False)
-    & df_listings['amenities'].str.contains(optional_keywords, regex=True, flags=re.IGNORECASE, na=False)  # at least one optional_keywords
+dn_props = final_listing[
+    final_listing['amenities'].apply(lambda x: any(req_kw in x.lower() for req_kw in required_keywords) if pd.notnull(x) else False)  # at least one required_keywords
+    & final_listing['amenities'].apply(lambda x: any(req_kw in x.lower() for req_kw in required_keywords2) if pd.notnull(x) else False)
+    & final_listing ['amenities'].str.contains(optional_keywords, regex=True, flags=re.IGNORECASE, na=False)  # at least one optional_keywords
 ].copy()
 
 
@@ -752,7 +753,7 @@ plt.title("Scenic View Properties Density in London Wards", fontsize=16)
 plt.show()
 ```
 
-> 7.2.3 spatial analysis for Digital Nomad Properties
+> 7.3.3 spatial analysis for Scenic View Properties
 
 ```{python}
 # calcualte spatial autocorrelation（Moran's I）
@@ -890,6 +891,153 @@ handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', ma
            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='Non-Hotspot')]
 ax.set_xlabel('Longitude')
 ax.set_ylabel('Latitude')
+ax.legend(handles=handles, loc='lower left', fontsize=8, title="LISA Categories")
+plt.tight_layout()
+plt.show()
+```
+
+### 7.5 Style-Specific Properties
+
+>7.5.1  Filtering for Style-Specific Properties
+
+```{python}
+# filter Style-Specific Properties
+# Step 1: Define more precise keywords for Style-Specific Properties
+style_keywords_vintage = r'\b(?:vintage|retro|antique|mid-century|old-fashioned|classic|art-deco|nostalgic)\b'
+style_keywords_rustic = r'\b(?:rustic|farmhouse|wood|cabin|country|countryside|barn|log|shabby chic)\b'
+style_keywords_japanese = r'\b(?:Japanese|Zen|tatami|wabi-sabi|shoji|shinto|Japanese garden|bamboo|futon)\b'
+
+# Filter properties containing relevant keywords based on the description
+ss_props = final_listing[
+    final_listing['description'].apply(lambda x: any(req_kw in x.lower() for req_kw in style_keywords_rustic.split("|")) if pd.notnull(x) else False)
+    | final_listing['description'].apply(lambda x: any(req_kw in x.lower() for req_kw in style_keywords_vintage.split("|")) if pd.notnull(x) else False)
+    | final_listing['description'].apply(lambda x: any(req_kw in x.lower() for req_kw in style_keywords_japanese.split("|")) if pd.notnull(x) else False)
+].copy()
+
+print(f"There are {ss_props.shape[0]:,} Style-Specific Properties.")
+```
+
+
+```{python}
+from shapely.geometry import Point
+import matplotlib.pyplot as plt
+
+# create gdf data through longitude and latitude
+geometry = gpd.points_from_xy(ss_props['longitude'], ss_props['latitude'])
+
+# transform to GeoDataFrame
+gdf_ss = gpd.GeoDataFrame(ss_props, geometry=geometry)
+
+# set crs WGS84 (EPSG:4326)
+gdf_ss.set_crs(epsg=4326, inplace=True)
+gdf_ss = gdf_ss.to_crs(epsg=27700)
+# check
+# print(gdf_ss.head())
+```
+
+```{python}
+import matplotlib.pyplot as plt
+
+# create a scatter map
+fig, ax = plt.subplots(figsize=(8, 8))
+
+# draw the boundary of london wards
+london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
+
+# draw Style-Specific Properties points
+gdf_ss.plot(ax=ax, marker="o", color="blue", markersize=10, alpha=0.7, label="Style-Specific Properties")
+
+# add title and legend
+plt.title("Style-Specific Properties in London", fontsize=16)
+plt.legend()
+
+# show the map
+plt.show()
+```
+
+> 7.5.2 calculate the density of Style-Specific Properties 
+
+```{python}
+# calculate the density of Properties in different themes
+# step 1: calculate the number of total listings in each ward
+## Calculate listings within each ward using intersection
+london_ward["total_listing"] = london_ward.geometry.apply(
+    lambda ward: gdf_final_listing[gdf_final_listing.intersects(ward)].index.tolist()
+)
+
+## Calculate the count of listings within each ward
+london_ward["listing_count"] = london_ward["total_listing"].apply(len)
+
+print(london_ward[["GSS_CODE", "NAME", "listing_count"]].head(10))
+```
+
+
+```{python}
+# step 2: for Style-Specific Properties:
+## 1. Calculate points within each ward using intersection
+london_ward["SS_List"] = london_ward.geometry.apply(
+    lambda ward: gdf_ss[gdf_ss.intersects(ward)].index.tolist()
+)
+
+## 2. Calculate the count of SS points within each ward
+london_ward["SS_Count"] = london_ward["SS_List"].apply(len)
+
+## 3. Calculate density 
+london_ward["SS_Density"] = london_ward["SS_Count"] / (london_ward["listing_count"])
+
+# 4. Inspect the results
+print(london_ward[["GSS_CODE", "SS_Count", "SS_Density"]].head())
+
+# 5.Plot density distribution
+fig, ax = plt.subplots(figsize=(8, 8))
+london_ward.plot(column="SS_Density", ax=ax, cmap="coolwarm", legend=True, 
+                 legend_kwds={"label": "Style-Specific Properties Density"})
+plt.title("Style-Specific Properties Density in London Wards", fontsize=16)
+plt.show()
+```
+
+> 7.5.3 spatial analysis for Style-Specific Properties
+
+
+```{python}
+import esda
+
+# calcualte spatial autocorrelation（Moran's I）
+# creating a spatial weights matrix
+from libpysal import weights
+import esda
+w = weights.Queen.from_dataframe(london_ward)
+w.transform = 'r'
+
+# calcualte spatial autocorrelation（Moran's I）
+# calculate Moran's I
+y = london_ward['SS_Density'].values
+moran = esda.Moran(y, w)
+print(f"Moran's I: {moran.I}")
+print(f"p-value: {moran.p_sim}")
+```
+
+```{python}
+# Perform Local Moran's I Analysis
+lisa = esda.Moran_Local(y, w)
+
+threshold_p_value = 0.05
+london_ward['SS_label'] = np.where(
+    (lisa.p_sim < threshold_p_value) & (lisa.q == 1),
+    'Hotspot',
+    'Non-Hotspot'
+)
+```
+
+```{python}
+# Plot LISA Results
+fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+london_ward[london_ward['SS_label'] == 'Hotspot'].plot(ax=ax, color='red', label='Hotspot')
+london_ward[london_ward['SS_label'] == 'Non-Hotspot'].plot(ax=ax, color='orange', label='Non-Hotspot')
+ax.set_title('Hotspot vs Non-Hotspot Areas for Style-Specific Properties Density')
+handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Hotspot'),
+           plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='Non-Hotspot')]
+
 ax.legend(handles=handles, loc='lower left', fontsize=8, title="LISA Categories")
 plt.tight_layout()
 plt.show()
