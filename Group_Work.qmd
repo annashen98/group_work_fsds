@@ -1,5 +1,5 @@
 ---
-bibliography: bio.bib
+bibliography: references.bib
 csl: harvard-cite-them-right.csl
 title: ANXX's Group Project
 execute:
@@ -199,25 +199,22 @@ columns_to_select = ['room_type', 'calculated_host_listings_count']
 bins = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, float('inf')]  # Group intervals
 labels = ['1', '2', '3', '4', '5', '6', '7', '8', '9','10+']  # Group labels
 # Filter columns and create groups for each DataFrame
-df_202312_filtered = df_202312[columns_to_select]
-df_202403_filtered = df_202403[columns_to_select]
-df_202406_filtered = df_202406[columns_to_select]
-df_202409_filtered = df_202409[columns_to_select]
+df_202312_filtered = df_202312[columns_to_select].copy()
+df_202403_filtered = df_202403[columns_to_select].copy()
+df_202406_filtered = df_202406[columns_to_select].copy()
+df_202409_filtered = df_202409[columns_to_select].copy()
 
 # Group by 'calculated_host_listings_count' using the defined bins and labels
-df_202312_filtered['group202312'] = pd.cut(df_202312_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
-df_202403_filtered['group202403'] = pd.cut(df_202403_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
-df_202406_filtered['group202406'] = pd.cut(df_202406_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
-df_202409_filtered['group202409'] = pd.cut(df_202409_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
+df_202312_filtered.loc[:, 'group202312'] = pd.cut(df_202312_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
+df_202403_filtered.loc[:, 'group202403'] = pd.cut(df_202403_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
+df_202406_filtered.loc[:, 'group202406'] = pd.cut(df_202406_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
+df_202409_filtered.loc[:, 'group202409'] = pd.cut(df_202409_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
 
 # Function to calculate the most popular room_type per group and host count per group
 def analyze_room_type(df, group_column):
-    # Calculate the number of hosts per group (count)
-    host_count = df.groupby(group_column)['room_type'].count()
-
-    # Calculate the most popular room_type per group
-    most_popular_room_type = df.groupby([group_column, 'room_type']).size().unstack(fill_value=0).idxmax(axis=1)
-
+    # # Calculate the number of hosts per group (count)
+    host_count = df.groupby(group_column, observed=False)['room_type'].count()
+    most_popular_room_type = df.groupby([group_column, 'room_type'], observed=False).size().unstack(fill_value=0).idxmax(axis=1)
     return host_count, most_popular_room_type
 
 # Analyze each DataFrame
@@ -225,7 +222,6 @@ host_count_202312, popular_room_type_202312 = analyze_room_type(df_202312_filter
 host_count_202403, popular_room_type_202403 = analyze_room_type(df_202403_filtered, 'group202403')
 host_count_202406, popular_room_type_202406 = analyze_room_type(df_202406_filtered, 'group202406')
 host_count_202409, popular_room_type_202409 = analyze_room_type(df_202409_filtered, 'group202409')
-
 # Combine results into a single DataFrame
 summary_data = pd.DataFrame({
     'number_of_property': labels,
@@ -272,6 +268,8 @@ fig.show()
 ```
 
 Explaination: 
+
+1
 
 > **Hypothesis 2: Entire home/ apartment distributed separated randomly in London**
 
@@ -324,6 +322,8 @@ boros.crs
 ```{python}
 #Combining all the data
 combined_df = pd.concat([df_202312, df_202403, df_202406, df_202409], ignore_index=True)
+#Ensure there are no duplicates in id column
+combined_df = combined_df.drop_duplicates(subset='id', keep='first')
 # Get the total number of columns
 num_columns = combined_df.shape[0]
 print(f"Total number of columns: {num_columns}")
@@ -421,11 +421,14 @@ plt.tight_layout()
 plt.show()
 ```
 
+```{python}
 Explaination: 
+
+```
 
 ## 7. Drawing on your previous answers, and supporting your response with evidence (*e.g.* figures, maps, EDA/ESDA, and simple statistical analysis/models drawing on experience from, e.g., CASA0007), how *could* the InsideAirbnb data set be used to inform the regulation of Short-Term Lets (STL) in London? 
 
-### 7.1 set the data
+### **7.1 set the data**
 
 ```{python}
 import re
@@ -452,26 +455,28 @@ df_reviews = pd.read_csv(file_path2)
 ```
 
 ```{python}
-# 1. remove missing data and duplicates in listings
+# 1. Remove duplicates based on 'id' column in the Airbnb listings
+# This ensures we don't count the same listing multiple times
+df_listings = df_listings.drop_duplicates(subset='id')  # Use 'id' column to check duplicates
+
+# 2. remove missing data
 import matplotlib.pyplot as plt
 # Remove rows with missing amenities and description
-df_listings = df_listings.dropna(subset=['amenities'])
-df_listings = df_listings.dropna(subset=['description'])
+df_listings_1 = df_listings.dropna(subset=['amenities'])
+df_listings_2 = df_listings.dropna(subset=['name'])
+df_listings_3 = df_listings.dropna(subset=['description'])
 
-# 2. Remove duplicates based on 'id' column in the Airbnb listings
-# This ensures we don't count the same listing multiple times
-final_listing = df_listings.drop_duplicates(subset='id')  # Use 'id' column to check duplicates
-
+# remove
 # 3. transform data to geodataframe
 from shapely.geometry import Point
-final_listing  = gpd.GeoDataFrame(final_listing , 
-                geometry=[Point(x,y) for x, y in zip(final_listing .longitude,final_listing .latitude)])
+df_listings  = gpd.GeoDataFrame(df_listings , 
+                geometry=[Point(x,y) for x, y in zip(df_listings .longitude,df_listings .latitude)])
 
-final_listing  = gpd.GeoDataFrame(final_listing ,
-      geometry=gpd.points_from_xy(final_listing .longitude, final_listing .latitude, crs='epsg:4326'))
+df_listings  = gpd.GeoDataFrame(df_listings ,
+      geometry=gpd.points_from_xy(df_listings .longitude, df_listings .latitude, crs='epsg:4326'))
 
-## reprojection
-gdf_final_listing  = final_listing.to_crs(epsg=27700)
+# reprojection
+gdf_final_listing  = df_listings.to_crs(epsg=27700)
 print(gdf_final_listing.crs)
 ```
 
@@ -496,9 +501,9 @@ london_ward = gpd.read_file(os.path.join(ddir, "London-wards-2018_ESRI", "London
 london_ward = london_ward.to_crs(epsg=27700)
 ```
 
-### 7.2 Digital Nomad Properties
+### **7.2 Digital Nomad Properties**
 
-> 7.2.1 filter Digital Nomad Properties based on amenities
+### 7.2.1 filter Digital Nomad Properties based on amenities
 
 ```{python}
 # filter Digital Nomad Properties
@@ -510,10 +515,10 @@ optional_keywords = r'\b(?:workspace|dedicated desk|monitor|ergonomic desk|meeti
                     r'quiet space|long-term stays allowed|adjustable lighting|coffee)\b'
                     
 # Filter properties containing relevant keywords（based on amenities）
-dn_props = final_listing[
-    final_listing['amenities'].apply(lambda x: any(req_kw in x.lower() for req_kw in required_keywords) if pd.notnull(x) else False)  # at least one required_keywords
-    & final_listing['amenities'].apply(lambda x: any(req_kw in x.lower() for req_kw in required_keywords2) if pd.notnull(x) else False)
-    & final_listing ['amenities'].str.contains(optional_keywords, regex=True, flags=re.IGNORECASE, na=False)  # at least one optional_keywords
+dn_props = df_listings_1[
+    df_listings_1['amenities'].apply(lambda x: any(req_kw in x.lower() for req_kw in required_keywords) if pd.notnull(x) else False)  # at least one required_keywords
+    & df_listings_1['amenities'].apply(lambda x: any(req_kw in x.lower() for req_kw in required_keywords2) if pd.notnull(x) else False)
+    & df_listings_1 ['amenities'].str.contains(optional_keywords, regex=True, flags=re.IGNORECASE, na=False)  # at least one optional_keywords
 ].copy()
 
 
@@ -534,8 +539,9 @@ gdf_dn = gpd.GeoDataFrame(dn_props, geometry=geometry)
 # set crs WGS84 (EPSG:4326)
 gdf_dn.set_crs(epsg=4326, inplace=True)
 gdf_dn = gdf_dn.to_crs(epsg=27700)
-# check
-# print(gdf_dn.head())
+
+# clip data
+gdf_dn = gpd.clip(gdf_dn, london_ward)
 ```
 
 ```{python}
@@ -548,7 +554,7 @@ fig, ax = plt.subplots(figsize=(8, 8))
 london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
 
 # draw Digital Nomad Properties points
-gdf_dn.plot(ax=ax, marker="o", color="blue", markersize=10, alpha=0.7, label="Digital Nomad Properties")
+gdf_dn.plot(ax=ax, marker="o", color="orchid", markersize=8, alpha=0.5, label="Digital Nomad Properties")
 
 # add title and legend
 plt.title("Digital Nomad Properties in London", fontsize=16)
@@ -558,20 +564,13 @@ plt.legend()
 plt.show()
 ```
 
-> 7.2.2 calculate the density of Digital Nomad Properties
+### 7.2.2 calculate the density of Digital Nomad Properties
 
 ```{python}
 # calculate the density of Properties in different themes
-# step 1: calculate the number of total listings in each ward
-## Calculate listings within each ward using intersection
-london_ward["total_listing"] = london_ward.geometry.apply(
-    lambda ward: gdf_final_listing[gdf_final_listing.intersects(ward)].index.tolist()
-)
-
-## Calculate the count of listings within each ward
-london_ward["listing_count"] = london_ward["total_listing"].apply(len)
-
-print(london_ward[["GSS_CODE", "NAME", "listing_count"]].head(10))
+# step 1: calculate the number of total Digital Nomad Properties in London
+total_number_of_dn = len(gdf_dn)
+print(total_number_of_dn)
 ```
 
 ```{python}
@@ -585,7 +584,7 @@ london_ward["DN_List"] = london_ward.geometry.apply(
 london_ward["DN_Count"] = london_ward["DN_List"].apply(len)
 
 ## 3. Calculate density 
-london_ward["DN_Density"] = london_ward["DN_Count"] / (london_ward["listing_count"])
+london_ward["DN_Density"] = london_ward["DN_Count"] / total_number_of_dn
 
 # 4. Inspect the results
 print(london_ward[["GSS_CODE", "DN_Count", "DN_Density"]].head())
@@ -598,7 +597,7 @@ plt.title("Digital Nomad Properties Density in London Wards", fontsize=16)
 plt.show()
 ```
 
-> 7.2.3 spatial analysis for Digital Nomad Properties
+### 7.2.3 spatial analysis for Digital Nomad Properties
 
 ```{python}
 # calcualte spatial autocorrelation（Moran's I）
@@ -639,9 +638,9 @@ plt.tight_layout()
 plt.show()
 ```
 
-### 7.3 Scenic View Properties
+### **7.3 Scenic View Properties**
 
-> 7.3.1 Filter Scenic View Properties
+### 7.3.1 Filter Scenic View Properties
 
 ```{python}
 # returns a data frame with all values set to True/False according to Null status
@@ -662,7 +661,7 @@ df_reviews.isnull().sum(axis=0).sort_values(ascending=False)
 
 ```{python}
 # Create the regular expression pattern for scenic views, landmarks, parks, museums, and famous places
-scenic_keywords = r'(?=scenic|landmark|iconic|museum|famous|historic|heritage|monument|well-known|popular|kensington palace|buckingham palace|tower|cathedral|gallery|London eye)'
+scenic_keywords = r'(?=scenic|landmark|iconic|museum|famous|historic|heritage|monument|well-known|popular|kensington palace|buckingham palace|tower|cathedral|gallery|London eye|bigben|westminster abbey|castle|warner bros|frameless|tussauds|sea life|IFS cloud|london dungeon)'
 
 # Filter rows where the 'description' column contains any of the specified keywords
 scenic_landmark = df_reviews[
@@ -671,9 +670,9 @@ scenic_landmark = df_reviews[
 ```
 
 ```{python}
-# Get the number of rows in the filtered DataFrame
-num_rows = len(scenic_landmark)
-print(num_rows)
+# Get the number of properties in the filtered DataFrame
+num_row = len(scenic_landmark)
+print(num_row)
 ```
 
 ```{python}
@@ -691,7 +690,7 @@ print(num_rows)
 
 ```{python}
 # Columns to select in listings
-columns_to_keep = ['id', 'name', 'host_id', 'latitude', 'longitude', 'room_type', 'price', 'availability_365']
+columns_to_keep = ['id', 'name', 'host_id', 'latitude', 'longitude', 'room_type', 'price', 'minimum_nights_avg_ntm','availability_365','reviews_per_month']
 df_listings_selected = df_listings[columns_to_keep]
 
 # Perform an inner join
@@ -708,6 +707,9 @@ gdf_sv = gpd.GeoDataFrame(df_inner_join,
 gdf_sv = gpd.GeoDataFrame(df_inner_join,
       geometry=gpd.points_from_xy(df_inner_join.longitude, df_inner_join.latitude, crs='epsg:4326'))
 gdf_sv = gdf_sv.to_crs(epsg=27700)
+
+# clip data
+gdf_sv = gpd.clip(gdf_sv, london_ward)
 ```
 
 ```{python}
@@ -718,7 +720,7 @@ fig, ax = plt.subplots(figsize=(8, 8))
 london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
 
 # draw Scenic View Properties points
-gdf_sv.plot(ax=ax, marker="o", color="blue", markersize=10, alpha=0.7, label="Scenic View Properties")
+gdf_sv.plot(ax=ax, marker="o", color="orchid", markersize=8, alpha=0.5, label="Scenic View Properties")
 
 # add title and legend
 plt.title("Scenic View Properties in London", fontsize=16)
@@ -728,24 +730,27 @@ plt.legend()
 plt.show()
 ```
 
-> 7.3.2 calculate the density of Scenic View Properties
+### 7.3.2 calculate the density of Scenic View Properties
 
 ```{python}
-# 1. Calculate points within each ward using intersection
+# 1. calculate the total number of Scenic View Properties in London
+total_number_of_sv = len(gdf_sv)
+
+# 2. Calculate points within each ward using intersection
 london_ward["SV_List"] = london_ward.geometry.apply(
     lambda ward: gdf_sv[gdf_sv.intersects(ward)].index.tolist()
 )
 
-# 2. Calculate the count of DN points within each ward
+# 3. Calculate the count of DN points within each ward
 london_ward["SV_Count"] = london_ward["SV_List"].apply(len)
 
-# 3. Calculate density
-london_ward["SV_Density"] = london_ward["SV_Count"] / (london_ward["listing_count"])
+# 4. Calculate density
+london_ward["SV_Density"] = london_ward["SV_Count"] / total_number_of_sv
 
-# 4. Inspect the results
+# 5. Inspect the results
 print(london_ward[["GSS_CODE", "NAME", "SV_Count", "SV_Density"]].head())
 
-# 5.Plot density distribution
+# 6.Plot density distribution
 fig, ax = plt.subplots(figsize=(8, 8))
 london_ward.plot(column="SV_Density", ax=ax, cmap="coolwarm", legend=True, 
                  legend_kwds={"label": "Scenic View Properties Density"})
@@ -753,7 +758,7 @@ plt.title("Scenic View Properties Density in London Wards", fontsize=16)
 plt.show()
 ```
 
-> 7.3.3 spatial analysis for Scenic View Properties
+### 7.3.3 spatial analysis for Scenic View Properties
 
 ```{python}
 # calcualte spatial autocorrelation（Moran's I）
@@ -788,135 +793,154 @@ plt.tight_layout()
 plt.show()
 ```
 
-## 7.4. Close To Tube Properties
+### **7.4 Close To Tube Properties**
 
-### 7.4.1. Clip the Data
+### 7.4.1 filter Close To Tube Properties based on name
 
 ```{python}
 # Filter data based on the "name" column containing specific phrases
 keywords = ['station', 'underground', 'overground', 'tube', 'DLR', 'line', 'metro']
-filtered_listings_transport = gdf_final_listing[gdf_final_listing['name'].str.contains('|'.join(keywords), case=False, na=False)]
-#clip data
-gdf_listings_transport_clipped = gpd.clip(gdf_final_listing, london_ward)
-gdf_listings_transport_clipped = gdf_listings_transport_clipped.set_crs(epsg=27700)
+ctt_props = df_listings_2[df_listings_2['name'].str.contains('|'.join(keywords), case=False, na=False)]
 ```
 
-### 7.4.2. Visualise the Data on Map
+```{python}
+# transform ctt_props into geodattaframe
+# create gdf data through longitude and latitude
+geometry = gpd.points_from_xy(ctt_props['longitude'], ctt_props['latitude'])
+
+# transform to GeoDataFrame
+gdf_ctt = gpd.GeoDataFrame(ctt_props, geometry=geometry)
+
+# set crs WGS84 (EPSG:4326)
+gdf_ctt.set_crs(epsg=4326, inplace=True)
+gdf_ctt = gdf_ctt.to_crs(epsg=27700)
+
+# clip data
+gdf_ctt = gpd.clip(gdf_ctt, london_ward)
+```
 
 ```{python}
-import matplotlib.pyplot as plt
-count = len(gdf_listings_transport_clipped)
-print(f"There are {count} properties in London.")
-
-# create a scatter map for Digital Nomad Properties
+# create a scatter map
 fig, ax = plt.subplots(figsize=(8, 8))
 
 # draw the boundary of london wards
 london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
 
-# draw Digital Nomad Properties points
-gdf_listings_transport_clipped.plot(ax=ax, marker="o", color="blue", markersize=10, alpha=0.7, label="Transport  Properties")
+# draw Scenic View Properties points
+gdf_ctt.plot(ax=ax, marker="o", color="orchid", markersize=8, alpha=0.5, label="Scenic View Properties")
 
 # add title and legend
-plt.title("Transport Friendly Properties in London", fontsize=16)
+plt.title("Close To Tube Properties in London", fontsize=16)
 plt.legend()
 
 # show the map
 plt.show()
 ```
 
-#### 7.4.3. Count Tube by Ward
+### 7.4.2 calculate the density of Close To Tube Properties
 
 ```{python}
-# Spatial join to assign listings to wards
-ward_transport = london_ward.sjoin(gdf_listings_transport_clipped, how='left', predicate='contains')
-# Count the number of listings in each ward
-ward_transport = ward_transport.groupby('GSS_CODE').size().reset_index(name='listing_count')
-# Merge back with ward data
-ward_transport_final = london_ward.merge(ward_transport, how='left', left_on='GSS_CODE', right_on='GSS_CODE')
-
-print(ward_transport_final.head())
+# calculate the density of Properties in different themes
+# step 1: calculate the number of total Close To Tube Properties in London
+total_number_of_ctt = len(gdf_ctt)
+print(total_number_of_ctt)
 ```
 
 ```{python}
-# Fill NaN values with 0 for wards with no listings
-ward_transport_final['listing_count_x'] = ward_transport_final['listing_count_x'].fillna(0)
+# step 2: for Close To Tube Properties:
+## 1. Calculate points within each ward using intersection
+london_ward["CTT_List"] = london_ward.geometry.apply(
+    lambda ward: gdf_ctt[gdf_ctt.intersects(ward)].index.tolist()
+)
 
-# Display results
-print(ward_transport_final[['GSS_CODE', 'listing_count_x']].head())
+## 2. Calculate the count of DN points within each ward
+london_ward["CTT_Count"] = london_ward["CTT_List"].apply(len)
 
-# Visualize listings per ward on the map
-fig, ax = plt.subplots(figsize=(12, 8))
-ward_transport_final.plot(column='listing_count_x', cmap='OrRd', legend=True, ax=ax, edgecolor='black', alpha=0.7)
-ax.set_title("Tube Friendly listings by Ward", fontsize=16)
-ax.axis('off')
+## 3. Calculate density 
+london_ward["CTT_Density"] = london_ward["CTT_Count"] / total_number_of_ctt
+
+# 4. Inspect the results
+print(london_ward[["GSS_CODE", "CTT_Count", "CTT_Density"]].head())
+
+# 5.Plot density distribution
+fig, ax = plt.subplots(figsize=(8, 8))
+london_ward.plot(column="CTT_Density", ax=ax, cmap="coolwarm", legend=True, 
+                 legend_kwds={"label": "Close To Tube Properties Density"})
+plt.title("Close To Tube Properties Density in London Wards", fontsize=16)
 plt.show()
 ```
 
-#### 7.4.4. Calculate Spatial Autocorrelation
+### 7.4.3 spatial analysis for Close To Tube Properties
 
 ```{python}
 # calcualte spatial autocorrelation（Moran's I）
-# creating a spatial weights matrix
-from libpysal import weights
-import esda
-w = weights.Queen.from_dataframe(ward_transport_final)
-w.transform = 'r'
-
 # calculate Moran's I
-y = ward_transport_final['listing_count_x'].values
+y = london_ward['CTT_Density'].values
 moran = esda.Moran(y, w)
 print(f"Moran's I: {moran.I}")
 print(f"p-value: {moran.p_sim}")
 ```
-
-### 7.4.5. Perform Local Moran I Analysis
 
 ```{python}
 # Perform Local Moran's I Analysis
 lisa = esda.Moran_Local(y, w)
 
 threshold_p_value = 0.05
-ward_transport_final['ward_label'] = np.where(
+london_ward['CTT_label'] = np.where(
     (lisa.p_sim < threshold_p_value) & (lisa.q == 1),
     'Hotspot',
     'Non-Hotspot'
 )
+
 # Plot LISA Results
 fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-ward_transport_final[ward_transport_final['ward_label'] == 'Hotspot'].plot(ax=ax, color='red', label='Hotspot')
-ward_transport_final[ward_transport_final['ward_label'] == 'Non-Hotspot'].plot(ax=ax, color='orange', label='Non-Hotspot')
-ax.set_title('Hotspot vs Non-Hotspot Areas for Tube Friendly Properties in London')
+london_ward[london_ward['CTT_label'] == 'Hotspot'].plot(ax=ax, color='red', label='Hotspot')
+london_ward[london_ward['CTT_label'] == 'Non-Hotspot'].plot(ax=ax, color='orange', label='Non-Hotspot')
+ax.set_title('Hotspot vs Non-Hotspot Areas for Close To Tube Properties Density')
 handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Hotspot'),
            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='Non-Hotspot')]
-ax.set_xlabel('Longitude')
-ax.set_ylabel('Latitude')
+
 ax.legend(handles=handles, loc='lower left', fontsize=8, title="LISA Categories")
 plt.tight_layout()
 plt.show()
 ```
 
-### 7.5 Style-Specific Properties
+### **7.5 Style-Specific Properties**
 
->7.5.1  Filtering for Style-Specific Properties
+### 7.5.1  Filtering for Style-Specific Properties
 
 ```{python}
 # filter Style-Specific Properties
-# Step 1: Define more precise keywords for Style-Specific Properties
+## Define more precise keywords for Style-Specific Properties
 style_keywords_vintage = r'\b(?:vintage|retro|antique|mid-century|old-fashioned|classic|art-deco|nostalgic)\b'
 style_keywords_rustic = r'\b(?:rustic|farmhouse|wood|cabin|country|countryside|barn|log|shabby chic)\b'
 style_keywords_japanese = r'\b(?:Japanese|Zen|tatami|wabi-sabi|shoji|shinto|Japanese garden|bamboo|futon)\b'
 
-# Filter properties containing relevant keywords based on the description
-ss_props = final_listing[
-    final_listing['description'].apply(lambda x: any(req_kw in x.lower() for req_kw in style_keywords_rustic.split("|")) if pd.notnull(x) else False)
-    | final_listing['description'].apply(lambda x: any(req_kw in x.lower() for req_kw in style_keywords_vintage.split("|")) if pd.notnull(x) else False)
-    | final_listing['description'].apply(lambda x: any(req_kw in x.lower() for req_kw in style_keywords_japanese.split("|")) if pd.notnull(x) else False)
+## Filter properties containing relevant keywords based on the description
+ss_props = df_listings_3[
+    df_listings_3['description'].apply(lambda x: any(req_kw in x.lower() for req_kw in style_keywords_rustic.split("|")) if pd.notnull(x) else False)
+    | df_listings_3['description'].apply(lambda x: any(req_kw in x.lower() for req_kw in style_keywords_vintage.split("|")) if pd.notnull(x) else False)
+    | df_listings_3['description'].apply(lambda x: any(req_kw in x.lower() for req_kw in style_keywords_japanese.split("|")) if pd.notnull(x) else False)
 ].copy()
 
-print(f"There are {ss_props.shape[0]:,} Style-Specific Properties.")
-```
+## Add the "Style" column
+def assign_style(description):
+    if pd.isnull(description):
+        return None
+    description = description.lower()
+    if any(req_kw in description for req_kw in style_keywords_vintage.split("|")):
+        return 'vintage'
+    elif any(req_kw in description for req_kw in style_keywords_rustic.split("|")):
+        return 'rustic'
+    elif any(req_kw in description for req_kw in style_keywords_japanese.split("|")):
+        return 'japanese'
+    return None
 
+ss_props['Style'] = ss_props['description'].apply(assign_style)
+
+print(f"There are {ss_props.shape[0]:,} Style-Specific Properties.")
+print(ss_props[['description', 'Style']].head())  
+```
 
 ```{python}
 from shapely.geometry import Point
@@ -931,8 +955,9 @@ gdf_ss = gpd.GeoDataFrame(ss_props, geometry=geometry)
 # set crs WGS84 (EPSG:4326)
 gdf_ss.set_crs(epsg=4326, inplace=True)
 gdf_ss = gdf_ss.to_crs(epsg=27700)
-# check
-# print(gdf_ss.head())
+
+# clip data
+gdf_ss = gpd.clip(gdf_ss, london_ward)
 ```
 
 ```{python}
@@ -941,11 +966,27 @@ import matplotlib.pyplot as plt
 # create a scatter map
 fig, ax = plt.subplots(figsize=(8, 8))
 
+# set the color
+style_colors = {
+    'rustic': 'lightblue',
+    'vintage': 'purple',
+    'japanese': 'gold'
+}
+
 # draw the boundary of london wards
 london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
 
 # draw Style-Specific Properties points
-gdf_ss.plot(ax=ax, marker="o", color="blue", markersize=10, alpha=0.7, label="Style-Specific Properties")
+for style, color in style_colors.items():
+    subset = gdf_ss[gdf_ss['Style'] == style]  # filter subset of Style
+    subset.plot(
+        ax=ax,
+        marker="o",
+        color=color,
+        markersize=8,
+        alpha=0.7,
+        label=style.capitalize()  # use capital as lable
+    )
 
 # add title and legend
 plt.title("Style-Specific Properties in London", fontsize=16)
@@ -955,22 +996,14 @@ plt.legend()
 plt.show()
 ```
 
-> 7.5.2 calculate the density of Style-Specific Properties 
+### 7.5.2 calculate the density of Style-Specific Properties 
 
 ```{python}
 # calculate the density of Properties in different themes
-# step 1: calculate the number of total listings in each ward
-## Calculate listings within each ward using intersection
-london_ward["total_listing"] = london_ward.geometry.apply(
-    lambda ward: gdf_final_listing[gdf_final_listing.intersects(ward)].index.tolist()
-)
-
-## Calculate the count of listings within each ward
-london_ward["listing_count"] = london_ward["total_listing"].apply(len)
-
-print(london_ward[["GSS_CODE", "NAME", "listing_count"]].head(10))
+# step 1: calculate the number of total listings in London
+total_number_of_ss = len(gdf_ss)
+print(total_number_of_ss)
 ```
-
 
 ```{python}
 # step 2: for Style-Specific Properties:
@@ -983,7 +1016,7 @@ london_ward["SS_List"] = london_ward.geometry.apply(
 london_ward["SS_Count"] = london_ward["SS_List"].apply(len)
 
 ## 3. Calculate density 
-london_ward["SS_Density"] = london_ward["SS_Count"] / (london_ward["listing_count"])
+london_ward["SS_Density"] = london_ward["SS_Count"] / total_number_of_ss
 
 # 4. Inspect the results
 print(london_ward[["GSS_CODE", "SS_Count", "SS_Density"]].head())
@@ -996,8 +1029,7 @@ plt.title("Style-Specific Properties Density in London Wards", fontsize=16)
 plt.show()
 ```
 
-> 7.5.3 spatial analysis for Style-Specific Properties
-
+### 7.5.3 spatial analysis for Style-Specific Properties
 
 ```{python}
 import esda
@@ -1043,6 +1075,100 @@ plt.tight_layout()
 plt.show()
 ```
 
+### **7.6 Occupancy and Revenue of each theme**
+
+In order to estimate the popularity of listings, we need to know the occupancy of listings which is also known as the number of nights sold. According to Wang's research [@wang2024] (Wang, Livingston, 2024), we can calculate the number of nights using this formular:
+> ***nights = reviews / reviewrate * minstay***
+>
+> where reviewrate is the review rate. As insideairbnb and Cosh's research [@cosh2020] both assume that about 50% of costumers will leave a review, we will take 50% as review rate. Reviews is the number of reviews per months. Minstay is the average minimum nights to stay in each listing. 
+
+```{python}
+# Calculate occupancy
+# Add 'occ_rate' column in total listings
+gdf_final_listing['occ_rate'] = (gdf_final_listing['reviews_per_month'] / 0.5) * gdf_final_listing['minimum_nights_avg_ntm']
+
+#Add 'occ_rate' column for the respective key theme
+gdf_dn['occ_rate'] = (gdf_dn['reviews_per_month'] / 0.5) * gdf_dn['minimum_nights_avg_ntm']
+gdf_sv['occ_rate'] = (gdf_sv['reviews_per_month'] / 0.5) * gdf_sv['minimum_nights_avg_ntm']
+gdf_ctt['occ_rate'] = (gdf_ctt['reviews_per_month'] / 0.5) * gdf_ctt['minimum_nights_avg_ntm']
+gdf_ss['occ_rate'] = (gdf_ss['reviews_per_month'] / 0.5) * gdf_ss['minimum_nights_avg_ntm']
+
+# Dictionary to map dataset names to the respective dataframes
+datasets = {
+    "Total Airbnb Listings": gdf_final_listing,
+    "Digital Nomad Listings": gdf_dn,
+    "Scenic-Iconic Listings": gdf_sv,
+    "Transport-related Listings": gdf_ctt,
+    "Style-Specific Listings": gdf_ss
+}
+
+# Calculate the average occupancy rate for each dataset
+avg_occupancy_rates = []
+
+# Loop through each dataset and calculate the average occupancy rate
+for dataset_name, gdf in datasets.items():
+    avg_occ_rate = gdf['occ_rate'].mean()  # Calculate the mean of 'occ_rate' for the current dataset
+    avg_occupancy_rates.append(avg_occ_rate)
+
+# Create a horizontal bar chart
+plt.figure(figsize=(10, 6))
+plt.barh(list(datasets.keys()), avg_occupancy_rates, color='skyblue')
+plt.xlabel('Average Occupancy Rate (Days)')
+plt.ylabel('Listing Type')
+plt.title('Average Occupancy Rate for Different Listings')
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+# Loop through each dataset to drop NaN values in the 'price' column
+for dataset_name, gdf in datasets.items():
+    # Drop NaN values in the 'price' column
+    gdf = gdf.dropna(subset=['price'])
+
+
+# Initialize the avg_revenues list before the loop
+avg_revenues = []
+
+# Loop through each dataset to clean the 'price' column, calculate revenue, and print the average revenue
+for dataset_name, gdf in datasets.items():
+    # Ensure the 'price' column is a string and handle any missing or NaN values
+    gdf['price'] = gdf['price'].astype(str)  # Convert to string to avoid .str error
+    gdf['price'] = gdf['price'].replace('nan', '0')  # Replace any 'nan' string with '0' or handle as needed
+    
+    # Clean the 'price' column by removing '$' and ',' and convert it to float
+    gdf['price'] = (
+        gdf['price']
+        .str.replace('$', '', regex=False)  # remove '$'
+        .str.replace(',', '', regex=False)  # remove ','
+        .astype(float)                      # convert to float
+    )
+    
+    # Calculate 'revenue' using 'price' and 'occ_rate'
+    gdf['revenue'] = gdf['price'] * gdf['occ_rate']
+    
+    # Calculate the average of the 'revenue' column
+    average_revenue = gdf['revenue'].mean()
+    
+    # Store the result in the list along with the dataset name
+    avg_revenues.append((dataset_name, round(average_revenue, 2)))
+
+# Separate the dataset names and average revenues for plotting
+dataset_names, revenues = zip(*avg_revenues)
+
+# Create a horizontal bar plot
+plt.figure(figsize=(10, 6))
+plt.barh(dataset_names, revenues, color='skyblue')
+plt.xlabel('Average Revenue')
+plt.ylabel('Listing Type')
+plt.title('Average Revenue for Different Listings')
+plt.tight_layout()  # Adjust layout to avoid overlap
+plt.show()
+```
+
+### **7.7 Conclusions and limitations**
+
+
 ## Sustainable Authorship Tools
 
 Using the Terminal in Docker, you compile the Quarto report using `quarto render <group_submission_file>.qmd`.
@@ -1052,3 +1178,8 @@ Your QMD file should automatically download your BibTeX and CLS files and any ot
 Written in Markdown and generated from [Quarto](https://quarto.org/). Fonts used: [Spectral](https://fonts.google.com/specimen/Spectral) (mainfont), [Roboto](https://fonts.google.com/specimen/Roboto) (<span style="font-family:Sans-Serif;">sansfont</span>) and [JetBrains Mono](https://fonts.google.com/specimen/JetBrains%20Mono) (`monofont`). 
 
 ## References
+
+Wang, Y. et al., (2024). The challenges of measuring the short-term rental market: an analysis of open data on Airbnb activity, Housing Studies. Routledge, 39, 9, 2260–2279.
+
+Georgie Cosh, G.L.A., (2020). Short-term and holiday letting in London. GLA Housing and Land.
+
