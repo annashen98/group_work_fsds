@@ -351,8 +351,8 @@ combined_df = pd.concat([df_202312, df_202403, df_202406, df_202409], ignore_ind
 #Ensure there are no duplicates in id column
 combined_df = combined_df.drop_duplicates(subset='id', keep='first')
 # Get the total number of columns
-num_columns = combined_df.shape[0]
-print(f"Total number of columns: {num_columns}")
+num_rows = combined_df.shape[0]
+print(f"Total number of rows: {num_rows}")
 ```
 
 ```{python}
@@ -393,27 +393,22 @@ print(boroughs_with_counts.columns)
 ```
 
 ```{python}
+# Set CRS
 boroughs_with_counts = boroughs_with_counts.to_crs(epsg=27700)
 
-import mapclassify as mc
-
-# Classify the data using Natural Breaks
+# Calculate Natural Breaks
 classifier = mc.NaturalBreaks(boroughs_with_counts['Entire home/apt'], k=5)  # k is the number of classes
-boroughs_with_counts['natural_breaks'] = classifier.yb  # Assign classification labels to a new column
+breaks = classifier.bins  # Extract the actual breakpoints
 
-# Define custom breaks and labels
-breaks = [798, 3473, 6660, 13245, 20530, 32696]  # One extra edge to create 5 bins
-labels = ['798-3472', '3473-6659', '6660-13244', '13245-20529', '20530-32695']  # Match the number of bins - 1
-
-# Classify the data using pd.cut
+# Use the actual numbers and assign the natural breaks bin ranges directly
 boroughs_with_counts['natural_breaks'] = pd.cut(
     boroughs_with_counts['Entire home/apt'],
-    bins=breaks,
-    labels=labels,
+    bins=[-float('inf')] + list(breaks),  # Include all values below the first break
+    labels=[f'{int(breaks[i-1]+1)}-{int(bin_edge)}' for i, bin_edge in enumerate(breaks, start=1)],
     include_lowest=True
 )
 
-# Plot the map with custom breaks
+# Plot the map with natural breaks
 fig, ax = plt.subplots(figsize=(8, 6))
 boroughs_with_counts.plot(
     column='natural_breaks',
@@ -426,12 +421,10 @@ boroughs_with_counts.plot(
 # Customize the legend
 legend = ax.get_legend()
 legend.set_title('Entire Home/Apt Count (Range)')
-legend.set_loc('upper right')          # Center align the legend
 
-# Title and adjustments
-ax.set_title('Number of Entire Apartments per Borough (Custom Ranges)')
+# Add title and save the map
+ax.set_title('Number of Entire Apartments per Borough (Natural Breaks)')
 plt.tight_layout()
-plt.savefig('map_entire_apartments_custom_breaks.png', dpi=300, bbox_inches='tight')  # Save the map
 plt.show()
 
 # Optional: Bar plot of number of entire apartments per borough
@@ -449,7 +442,6 @@ plt.show()
 
 ```{python}
 Explaination: 
-
 ```
 
 ## 7. Drawing on your previous answers, and supporting your response with evidence (*e.g.* figures, maps, EDA/ESDA, and simple statistical analysis/models drawing on experience from, e.g., CASA0007), how *could* the InsideAirbnb data set be used to inform the regulation of Short-Term Lets (STL) in London? 
@@ -1108,6 +1100,8 @@ In order to estimate the popularity of listings, we need to know the occupancy o
 >
 > where reviewrate is the review rate. As insideairbnb and Cosh's research [@cosh2020] both assume that about 50% of costumers will leave a review, we will take 50% as review rate. Reviews is the number of reviews per months. Minstay is the average minimum nights to stay in each listing. 
 
+### 7.6.1 calculate Occupancy Rates for Each Theme 
+
 ```{python}
 # Calculate occupancy
 # Add 'occ_rate' column in total listings
@@ -1135,23 +1129,16 @@ avg_occupancy_rates = []
 for dataset_name, gdf in datasets.items():
     avg_occ_rate = gdf['occ_rate'].mean()  # Calculate the mean of 'occ_rate' for the current dataset
     avg_occupancy_rates.append(avg_occ_rate)
-
-# Create a horizontal bar chart
-plt.figure(figsize=(10, 6))
-plt.barh(list(datasets.keys()), avg_occupancy_rates, color='skyblue')
-plt.xlabel('Average Occupancy Rate (Days)')
-plt.ylabel('Listing Type')
-plt.title('Average Occupancy Rate for Different Listings')
-plt.tight_layout()
-plt.show()
 ```
 
+### 7.6.2 Calculate Revenues for Each Theme 
+
 ```{python}
+#Calculate the Revenue
 # Loop through each dataset to drop NaN values in the 'price' column
 for dataset_name, gdf in datasets.items():
     # Drop NaN values in the 'price' column
     gdf = gdf.dropna(subset=['price'])
-
 
 # Initialize the avg_revenues list before the loop
 avg_revenues = []
@@ -1181,14 +1168,28 @@ for dataset_name, gdf in datasets.items():
 
 # Separate the dataset names and average revenues for plotting
 dataset_names, revenues = zip(*avg_revenues)
+```
 
-# Create a horizontal bar plot
-plt.figure(figsize=(10, 6))
-plt.barh(dataset_names, revenues, color='skyblue')
-plt.xlabel('Average Revenue')
-plt.ylabel('Listing Type')
-plt.title('Average Revenue for Different Listings')
-plt.tight_layout()  # Adjust layout to avoid overlap
+```{python}
+# Create a figure
+fig, ax1 = plt.subplots(figsize=(10, 6))
+ax2 = ax1.twiny()# Create a secondary x-axis for Average Occupancy Rate
+y_positions = np.arange(len(dataset_names)) # Set positions for the bars
+
+# Plot Average Revenue (Primary axis)
+bars1 = ax1.barh(y_positions, revenues, color='skyblue', label='Average Revenue', height=0.4, align='center')
+bars2 = ax2.barh(y_positions + 0.4, avg_occupancy_rates, color='lightcoral', label='Average Occupancy Rate (Days)', height=0.4, align='center')
+
+# Add x-axis label and ticks for Average Revenue
+ax1.set_xlabel('Average Revenue', color='skyblue')
+ax1.tick_params(axis='x', labelcolor='skyblue')
+
+# Add x-axis label and ticks for Average Occupancy Rate
+ax2.set_xlabel('Average Occupancy Rate (Days)', color='lightcoral')
+ax2.tick_params(axis='x', labelcolor='lightcoral')
+plt.yticks(y_positions, dataset_names)
+plt.title('Comparison of Average Revenue and Occupancy Rate')
+plt.tight_layout()
 plt.show()
 ```
 
@@ -1208,4 +1209,3 @@ Written in Markdown and generated from [Quarto](https://quarto.org/). Fonts used
 Wang, Y. et al., (2024). The challenges of measuring the short-term rental market: an analysis of open data on Airbnb activity, Housing Studies. Routledge, 39, 9, 2260–2279.
 
 Georgie Cosh, G.L.A., (2020). Short-term and holiday letting in London. GLA Housing and Land.
-
