@@ -101,7 +101,7 @@ InsideAirbnb collected publicly accessible data compiled from the Airbnb web-sit
 
 ## 4. How does the method of collection (Q3) impact the completeness and/or accuracy of the InsideAirbnb data? How well does it represent the process it seeks to study, and what wider issues does this raise?
 :::
-The method of data collection for InsideAirbnb impacts the completeness and accuracy of the data. In terms of completeness, InsideAirbnb collects data every three months, this infrequent collection may lead to gaps in capturing important details, resulting in incomplete representation of the market. In terms of accuracy, the data depends on Airbnb's public-facing information. If the data on Airbnb is wrong, then the data on InsideAirbnb will go wrong too. Secondly, while data collection ensures the privacy of each listing’s exact location, it sacrifices spatial precision, which limits its use for detailed spatial analysis. 
+The method of data collection for InsideAirbnb impacts the completeness and accuracy of the data. In terms of completeness, InsideAirbnb collects data every three months, this infrequent collection may lead to gaps in capturing important details. In terms of accuracy, the data depends on Airbnb's public-facing information. Meanwhile, data collection ensures the privacy of each listing’s exact location, it sacrifices spatial precision, which limits a detailed spatial analysis.
 
 The InsideAirbnb dataset also provides a foundational view of short-term lettings in London, highlighting key details such as property types, host information, and general availability. However, it has not fully captured the dynamic and complex nature of short-term rental markets. The limitation of the data will influence policymakers’ decisions. Policymakers require precise spatial and temporal insights to understand regional housing availability, neighborhood dynamics, and tourism management. 
 
@@ -111,7 +111,7 @@ The InsideAirbnb dataset also provides a foundational view of short-term letting
 
 ::: 
 
-These ethical considerations are addressed from three perspectives: information sources, location information, and neighborhood names. No private information is used in InsideAirbnb data. InsideAirbnb ensures that no private details such as names, photographs, or reviews are used inappropriately, as they are all publicly accessible on the platform. The location data for listings is anonymized by Airbnb, with coordinates scattered within a 0-450 feet (150 meters) range of the actual address to protect privacy. Furthermore, neighborhood names are excluded due to inaccuracies in Airbnb’s naming system, and geographic coordinates are used in conjunction with official city boundaries for more accurate analysis. The site claims "fair use" of this public data, ensuring it serves a non-commercial purpose aimed at public analysis, discussion, and community benefit. 
+These ethical considerations are addressed from three perspectives: information sources, location information, and neighborhood names. InsideAirbnb ensures that no private details such as names, photographs, or reviews are used inappropriately, as they are all publicly accessible on the platform. The location data for listings is anonymized by Airbnb, with coordinates scattered within 150 meters range of the actual address to protect privacy. Furthermore, neighborhood names are excluded due to inaccuracies in Airbnb’s naming system, and geographic coordinates are used in conjunction with official city boundaries for more accurate analysis. The site serves a non-commercial purpose aimed at public analysis, discussion, and community benefit.
 
 
 :::
@@ -275,8 +275,6 @@ fig.update_layout(
 fig.show()
 ```
 
-Explaination: 
-
 The majority of hosts manage only one property, with 44,000 to 45,000 hosts per period, while those with “10+ properties” represent a significant share, with 18,000 to 20,000 hosts. This highlights that, although most hosts manage a single property, multi-property hosts still play a notable role. "Entire home/apt" remains the most popular room type across all host groups, further emphasizing its market dominance.
 
 > **Hypothesis 2: Entire home/ apartment distributed randomly in London**
@@ -423,21 +421,9 @@ legend.set_title('Entire Home/Apt Count (Range)')
 ax.set_title('Number of Entire Apartments per Borough (Natural Breaks)')
 plt.tight_layout()
 plt.show()
-
-# Optional: Bar plot of number of entire apartments per borough
-boroughs_with_counts = boroughs_with_counts.sort_values(by='Entire home/apt', ascending=False)
-
-fig, ax2 = plt.subplots(figsize=(8, 5))
-ax2.bar(boroughs_with_counts['neighbourhood'], boroughs_with_counts['Entire home/apt'], color='skyblue', edgecolor='black')
-ax2.set_title('Count of Entire Home/Apartments per Borough (Sorted)')
-ax2.set_xlabel('Borough')
-ax2.set_ylabel('Count of Entire Home/Apartments')
-plt.xticks(rotation=90)
-plt.tight_layout()
-plt.show()
 ```
 
-"Entire home/apt" listings dominate, making up 60–70% of the total, while "Private room" listings are less common. The highest concentrations of these listings are in Westminster, Kensington and Chelsea, and Tower Hamlets. Westminster having the most at 12,518  properties (9,65% of the total listings). Sutton has the fewest, with only 279 properties (0.22% of total listings). For hypothesis 2, the spatial distribution of "Entire home/apt" listings is not random, as the choropleth map shows clear clusters in certain boroughs, indicating higher demand or opportunities in specific areas.
+The highest concentrations of entire apartmens/houses are in Westminster, Kensington and Chelsea, and Tower Hamlets. Westminster having the most at 12,518  properties (9,65% of the total listings). Sutton has the fewest, with only 279 properties (0.22% of total listings). For hypothesis 2, the spatial distribution of "Entire home/apt" listings is not random, as the choropleth map shows clear clusters in certain boroughs, indicating higher demand or opportunities in specific areas.
 
 ## 7. Drawing on your previous answers, and supporting your response with evidence (*e.g.* figures, maps, EDA/ESDA, and simple statistical analysis/models drawing on experience from, e.g., CASA0007), how *could* the InsideAirbnb data set be used to inform the regulation of Short-Term Lets (STL) in London? 
 
@@ -553,28 +539,6 @@ gdf_dn = gdf_dn.to_crs(epsg=27700)
 # clip data
 gdf_dn = gpd.clip(gdf_dn, london_ward)
 ```
-
-```{python}
-import matplotlib.pyplot as plt
-
-# create a scatter map
-fig, ax = plt.subplots(figsize=(8, 8))
-
-# draw the boundary of london wards
-london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
-
-# draw Digital Nomad Properties points
-gdf_dn.plot(ax=ax, marker="o", color="orchid", markersize=8, alpha=0.5, label="Digital Nomad Properties")
-
-# add title and legend
-plt.title("Digital Nomad Properties in London", fontsize=16)
-plt.legend()
-
-# show the map
-plt.show()
-```
-
-While digital nomad theme properties can be found almost anywhere in London, most of them are concentrated in Central London areas.
 
 ### 7.2.2 Calculate the Density of Digital Nomad Properties
 
@@ -692,26 +656,6 @@ gdf_sv = gdf_sv.to_crs(epsg=27700)
 gdf_sv = gpd.clip(gdf_sv, london_ward)
 ```
 
-```{python}
-# create a scatter map
-fig, ax = plt.subplots(figsize=(8, 8))
-
-# draw the boundary of london wards
-london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
-
-# draw Scenic View Properties points
-gdf_sv.plot(ax=ax, marker="o", color="orchid", markersize=8, alpha=0.5, label="Scenic-Iconic View Properties")
-
-# add title and legend
-plt.title("Scenic-Iconic View Properties in London", fontsize=16)
-plt.legend()
-
-# show the map
-plt.show()
-```
-
-Based on the map, most of Airbnb that advertised as having great scenic view are concentrated in Central London.
-
 ### 7.3.2 Calculate the Density of Scenic-Iconic View Properties
 
 ```{python}
@@ -795,26 +739,6 @@ gdf_ctt = gdf_ctt.to_crs(epsg=27700)
 gdf_ctt = gpd.clip(gdf_ctt, london_ward)
 ```
 
-```{python}
-# create a scatter map
-fig, ax = plt.subplots(figsize=(8, 8))
-
-# draw the boundary of london wards
-london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
-
-# draw Scenic View Properties points
-gdf_ctt.plot(ax=ax, marker="o", color="orchid", markersize=8, alpha=0.5, label="Close to Tube Properties")
-
-# add title and legend
-plt.title("Close To Tube Properties in London", fontsize=16)
-plt.legend()
-
-# show the map
-plt.show()
-```
-
-Based on the map, most of Airbnb that advertised as having good tube connectivity are concentrated in Central London.
-
 ### 7.4.2 Calculate the Density of Close to Tube Properties
 
 ```{python}
@@ -865,7 +789,7 @@ london_ward['CTT_label'] = np.where(
 fig, ax = plt.subplots(1, 1, figsize=(8, 8))
 london_ward[london_ward['CTT_label'] == 'Hotspot'].plot(ax=ax, color='red', label='Hotspot')
 london_ward[london_ward['CTT_label'] == 'Non-Hotspot'].plot(ax=ax, color='orange', label='Non-Hotspot')
-ax.set_title('Hotspot vs Non-Hotspot Areas for Close to Tube Properties Density')
+ax.set_title('Hotspot vs Non-Hotspot Areas for Close to Tube Properties')
 handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Hotspot'),
            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='Non-Hotspot')]
 
@@ -930,44 +854,6 @@ gdf_ss = gdf_ss.to_crs(epsg=27700)
 gdf_ss = gpd.clip(gdf_ss, london_ward)
 ```
 
-```{python}
-import matplotlib.pyplot as plt
-
-# create a scatter map
-fig, ax = plt.subplots(figsize=(8, 8))
-
-# set the color
-style_colors = {
-    'rustic': 'lightblue',
-    'vintage': 'purple',
-    'japanese': 'gold'
-}
-
-# draw the boundary of london wards
-london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
-
-# draw Style-Specific Properties points
-for style, color in style_colors.items():
-    subset = gdf_ss[gdf_ss['Style'] == style]  # filter subset of Style
-    subset.plot(
-        ax=ax,
-        marker="o",
-        color=color,
-        markersize=8,
-        alpha=0.7,
-        label=style.capitalize()  # use capital as lable
-    )
-
-# add title and legend
-plt.title("Style-Specific Properties in London", fontsize=16)
-plt.legend()
-
-# show the map
-plt.show()
-```
-
-There are only few Japanese style properties while most style-specific properties are dominated by Rustic and Vintage style in central areas.
-
 ### 7.5.2 Calculate the Density of Style-Specific Properties 
 
 ```{python}
@@ -1029,7 +915,7 @@ london_ward['SS_label'] = np.where(
 fig, ax = plt.subplots(1, 1, figsize=(8, 8))
 london_ward[london_ward['SS_label'] == 'Hotspot'].plot(ax=ax, color='red', label='Hotspot')
 london_ward[london_ward['SS_label'] == 'Non-Hotspot'].plot(ax=ax, color='orange', label='Non-Hotspot')
-ax.set_title('Hotspot vs Non-Hotspot Areas for Style-Specific Properties Density')
+ax.set_title('Hotspot vs Non-Hotspot Areas for Style-Specific Properties')
 handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Hotspot'),
            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='Non-Hotspot')]
 
@@ -1040,7 +926,7 @@ plt.show()
 
 Based on Local Moran's I analysis, the style-specific Airbnb Properties tend to dispersed, while some are concentrated in Central London.
 
-In conclusion, all four property themes are clustered in central London, though each varies in its specific appeal. Digital-nomad properties, for example, prioritize amenities such as workspaces and reliable Wi-Fi to support remote work. In contrast, scenic-iconic view properties are drawn to famous landmarks and tourist attractions, attracting both tourists and visitors. Many style-specific properties are also concentrated in central London, due to the area's historic architecture, which appeals to those seeking charming, older buildings. Some specific-style properties, like rustic style, are scattered in suburban areas, offering tourists a chance to experience rural life and tranquility. Meanwhile, some properties located near tube stations are found outside central London, likely due to the extensive London Underground network, where proximity to a station is a key factor in property selection.
+In conclusion, all four property themes are clustered in central London, though each varies in its specific appeal. Digital-nomad properties, for example, prioritize amenities such as workspaces and reliable Wi-Fi to support remote work. In contrast, scenic-iconic view properties are drawn to famous landmarks and tourist attractions, attracting both tourists and visitors. Many style-specific properties are also concentrated in central London, due to the area’s historic architecture, which appeals to those seeking charming, older buildings. Some specific-style properties, like rustic style, are scattered in suburban areas, offering tourists a chance to experience rural life and tranquility. Meanwhile, some properties located near tube stations are found outside central London, likely due to the extensive London Underground network, where proximity to a station is a key factor in property selection.
 
 
 ### **7.6 Occupancy and Revenue of Each Theme**
@@ -1159,4 +1045,3 @@ Deboosere, R. et al. (2019). Location, location and professionalization: a multi
 Georgie Cosh, G.L.A., (2020). Short-term and holiday letting in London. GLA Housing and Land.
 
 Wang, Y. et al., (2024). The challenges of measuring the short-term rental market: an analysis of open data on Airbnb activity, Housing Studies. Routledge, 39, 9, 2260–2279.
-
