@@ -1,0 +1,1232 @@
+---
+bibliography: references.bib
+csl: harvard-cite-them-right.csl
+title: ANXX's Group Project
+execute:
+  echo: false
+  freeze: true
+format:
+  html:
+    code-copy: true
+    code-link: true
+    toc: true
+    toc-title: On this page
+    toc-depth: 2
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+  pdf:
+    include-in-header:
+      text: |
+        \addtokomafont{disposition}{\rmfamily}
+    mainfont: Spectral
+    sansfont: Roboto Flex
+    monofont: InputMonoCondensed
+    papersize: a4
+    geometry:
+      - top=25mm
+      - left=40mm
+      - right=30mm
+      - bottom=25mm
+      - heightrounded
+    toc: false
+    number-sections: false
+    colorlinks: true
+    highlight-style: github
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .qmd
+      format_name: quarto
+      format_version: '1.0'
+      jupytext_version: 1.16.4
+  kernelspec:
+    display_name: Python (base)
+    language: python
+    name: base
+---
+
+```{python}
+#| echo: false
+import os
+
+import pandas as pd
+```
+
+```{python}
+#| echo: false
+host = "https://orca.casa.ucl.ac.uk"
+path = "~jreades/data"
+file = "20240614-London-listings.parquet"
+
+if os.path.exists(file):
+    df = pd.read_parquet(file)
+else:
+    df = pd.read_parquet(f"{host}/{path}/{file}")
+    df.to_parquet(file)
+```
+
+```{python}
+#| output: asis
+print(
+    f"One of way to embed output in the text looks like this: after cleaning, we were left with {df.shape[0]:,} rows of data."
+)
+```
+
+This way is also supposed to work (`{python} f"{df.shape[0]:,}" `) but I've found it less reliable.
+
+```{python}
+ax = df.host_listings_count.plot.hist(bins=50)
+ax.set_xlim([0, 500]);
+```
+
+```{python}
+import requests
+
+# URLs for the .bib and .csl files
+bib_url = "https://raw.githubusercontent.com/annashen98/group_work_fsds/65928e9bf22ec3080a250419132bdd9fd2e5c288/references.bib"
+csl_url = "https://raw.githubusercontent.com/annashen98/group_work_fsds/65928e9bf22ec3080a250419132bdd9fd2e5c288/harvard-cite-them-right.csl"
+
+# Download the references.bib file
+response_bib = requests.get(bib_url)
+if response_bib.status_code == 200:
+    with open("references.bib", "wb") as f:
+        f.write(response_bib.content)
+    print("Downloaded references.bib successfully.")
+else:
+    print(f"Failed to download references.bib. Status code: {response_bib.status_code}")
+
+# Download the harvard-cite-them-right.csl file
+response_csl = requests.get(csl_url)
+if response_csl.status_code == 200:
+    with open("harvard-cite-them-right.csl", "wb") as f:
+        f.write(response_csl.content)
+    print("Downloaded harvard-cite-them-right.csl successfully.")
+else:
+    print(f"Failed to download harvard-cite-them-right.csl. Status code: {response_csl.status_code}")
+```
+
+## 1. Who collected the InsideAirbnb data?
+
+::: {.duedate}
+
+The Inside Airbnb data is collected from Airbnb website through contributions from  public, various collaborators and partners with initial analysis by Murray Cox and web design for user experience led by John Morris. The website encourages more people who have experience working with community, activist groups or projects to participate in data collection.
+
+:::
+
+
+
+## 2. Why did they collect the InsideAirbnb data?
+
+::: {.duedate}
+
+InsideAirbnb aims to equip communities with data, offering transparency on the effects of Airbnb rentals on local housing markets. The website provides data and advocacy about short-term rental (Airbnb) impacts on residential communities, so that communities are empowered with data and information to understand, decide and control the role of renting residential homes to tourists.
+
+:::
+
+## 3. How did they collect it?
+
+::: 
+
+InsideAirbnb collected publicly accessible data compiled from the Airbnb web-site. The dataset represents a snapshot of listings available at a specific point in time (listings deleted by Airbnb will not appear). The collected data will be verified and cleansed,  such as outdated listings or incorrect entries. As mentioned in the website, InsideAirbnb acknowledges that listings can be deleted on the Airbnb platform implying that the data collection process is aware of the need to account for changes in availability, which would include removing listings that are no longer active. After cleansed and verified the data would be aggregated by excluding private information, which actually had been anonymized by Airbnb itself.
+
+:::
+
+## 4. How does the method of collection (Q3) impact the completeness and/or accuracy of the InsideAirbnb data? How well does it represent the process it seeks to study, and what wider issues does this raise?
+:::
+The method of data collection for InsideAirbnb impacts the completeness and accuracy of the data.
+In terms of completeness, InsideAirbnb collects data every three months, but short-term rental data changes frequently, including prices, availability, and other dynamic attributes. This infrequent collection may lead to gaps in capturing important details, resulting in incomplete representation of the market. Seasonal fluctuations, sudden spikes in listings due to events, or changes in host behavior could be missed. 
+In terms of accuracy, the data depends on Airbnb's public-facing information. If the data on Airbnb is wrong, then the data on InsideAirbnb will go wrong too. Secondly, while data collection ensures the privacy of each listing’s exact location, it sacrifices spatial precision, which limits its use for detailed spatial analysis. Additionally, self-reported attributes in the dataset may be inaccurate, as some hosts fail to update property availability or misrepresent their listings. For example, a host might mark a property as highly available even if they reside in the entire home/apartment. Last but not least, there is a significant ambiguity in Airbnb’s calendar data. The calendar does not distinguish between nights that are booked and nights marked unavailable by the host. Consequently, unavailable nights are often misinterpreted as booked nights, leading to overestimations of occupancy rates.
+:::
+
+## 5. What ethical considerations does the use of the InsideAirbnb data raise? 
+
+::: {.duedate}
+
+( 18 points; Answer due {{< var assess.group-date >}} )
+
+:::
+
+## 6. With reference to the InsideAirbnb data (*i.e.* using numbers, figures, maps, and descriptive statistics), what does an analysis of Hosts and the types of properties that they list suggest about the nature of Airbnb lettings in London? 
+
+> **Hypothesis  1: Hosts who manage multiple listings account for significant proportion of all hosts.**
+
+```{python}
+import os
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import matplotlib
+import matplotlib.font_manager
+import mapclassify
+import geopandas as gpd
+import requests
+```
+
+```{python}
+# Function to check if file exists and download it if not
+def check_and_download(url, out):
+    # check if data already exists
+    if os.path.isfile(out):
+        print(f"The file already exists at: {out}")
+    else:
+        print(f"The file does not exist. Downloading from {url}...")
+        response = requests.get(url)
+        if response.status_code == 200:
+            os.makedirs(os.path.dirname(out), exist_ok=True)  # Ensure the directory exists
+            with open(out, 'wb') as f:
+                f.write(response.content)
+            print(f"File successfully downloaded and saved to {out}")
+        else:
+            raise Exception(f"Failed to download file. HTTP status code: {response.status_code}")
+```
+
+```{python}
+# Set URL and output path
+url1 = 'https://data.insideairbnb.com/united-kingdom/england/london/2023-12-10/visualisations/listings.csv'
+url2 = 'https://data.insideairbnb.com/united-kingdom/england/london/2024-03-19/visualisations/listings.csv'
+url3 = 'https://data.insideairbnb.com/united-kingdom/england/london/2024-06-14/visualisations/listings.csv'
+url4 = 'https://data.insideairbnb.com/united-kingdom/england/london/2024-09-06/visualisations/listings.csv'
+out = os.path.join('data', 'listings.csv')
+
+# Use function to check and download data
+check_and_download(url1, out)
+new_name1 = os.path.join('data', 'listings_202312.csv') # Rename the file
+os.rename(out, new_name1)
+print(f"File renamed to: {new_name1}")
+df_202312 = pd.read_csv(new_name1)
+
+check_and_download(url2, out)
+new_name2 = os.path.join('data', 'listings_202403.csv') # Rename the file
+os.rename(out, new_name2)
+print(f"File renamed to: {new_name2}")
+df_202403 = pd.read_csv(new_name2)
+
+check_and_download(url3, out)
+new_name3 = os.path.join('data', 'listings_202406.csv') # Rename the file
+os.rename(out, new_name3)
+print(f"File renamed to: {new_name3}")
+df_202406 = pd.read_csv(new_name3)
+
+check_and_download(url4, out)
+new_name4 = os.path.join('data', 'listings_202409.csv') # Rename the file
+os.rename(out, new_name4)
+print(f"File renamed to: {new_name4}")
+df_202409 = pd.read_csv(new_name4)
+```
+
+```{python}
+# Select the required columns
+columns_to_select = ['room_type', 'calculated_host_listings_count']
+
+# Define group intervals
+bins = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, float('inf')]  # Group intervals
+labels = ['1', '2', '3', '4', '5', '6', '7', '8', '9','10+']  # Group labels
+# Filter columns and create groups for each DataFrame
+df_202312_filtered = df_202312[columns_to_select].copy()
+df_202403_filtered = df_202403[columns_to_select].copy()
+df_202406_filtered = df_202406[columns_to_select].copy()
+df_202409_filtered = df_202409[columns_to_select].copy()
+
+# Group by 'calculated_host_listings_count' using the defined bins and labels
+df_202312_filtered.loc[:, 'group202312'] = pd.cut(df_202312_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
+df_202403_filtered.loc[:, 'group202403'] = pd.cut(df_202403_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
+df_202406_filtered.loc[:, 'group202406'] = pd.cut(df_202406_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
+df_202409_filtered.loc[:, 'group202409'] = pd.cut(df_202409_filtered['calculated_host_listings_count'], bins=bins, labels=labels)
+
+# Function to calculate the most popular room_type per group and host count per group
+def analyze_room_type(df, group_column):
+    # # Calculate the number of hosts per group (count)
+    host_count = df.groupby(group_column, observed=False)['room_type'].count()
+    most_popular_room_type = df.groupby([group_column, 'room_type'], observed=False).size().unstack(fill_value=0).idxmax(axis=1)
+    return host_count, most_popular_room_type
+
+# Analyze each DataFrame
+host_count_202312, popular_room_type_202312 = analyze_room_type(df_202312_filtered, 'group202312')
+host_count_202403, popular_room_type_202403 = analyze_room_type(df_202403_filtered, 'group202403')
+host_count_202406, popular_room_type_202406 = analyze_room_type(df_202406_filtered, 'group202406')
+host_count_202409, popular_room_type_202409 = analyze_room_type(df_202409_filtered, 'group202409')
+# Combine results into a single DataFrame
+summary_data = pd.DataFrame({
+    'number_of_property': labels,
+    '2023-12': host_count_202312.reindex(labels, fill_value=0),
+    '2024-03': host_count_202403.reindex(labels, fill_value=0),
+    '2024-06': host_count_202406.reindex(labels, fill_value=0),
+    '2024-09': host_count_202409.reindex(labels, fill_value=0),
+})
+
+# Find the most common room_type across all dataframes
+# Concatenate all room_type columns, then find the most frequent room type
+combined_room_types = pd.concat([popular_room_type_202312, popular_room_type_202403, popular_room_type_202406, popular_room_type_202409])
+most_common_room_type = combined_room_types.mode()[0]  # Most common room type
+
+# Add the most common room type to the summary
+summary_data['most_common_room_type'] = most_common_room_type
+```
+
+```{python}
+# pip install tabulate (if you haven't downloaded this package, run this code)
+import plotly.graph_objects as go
+
+# Create a Plotly DataTable for summary_data
+fig = go.Figure(data=[go.Table(
+    header=dict(values=['Number of Property', 'Number of hosts (2023-12)', 'Number of hosts (2024-03)', 'Number of hosts (2024-06)', 'Number of hosts (2024-09)', 'Most Common Room Type'],
+                fill_color='paleturquoise', align='center', font=dict(size=12, color='black')),
+    cells=dict(values=[summary_data['number_of_property'],
+                       summary_data['2023-12'],
+                       summary_data['2024-03'],
+                       summary_data['2024-06'],
+                       summary_data['2024-09'],
+                       summary_data['most_common_room_type']],
+               fill_color='lavender', align='center', font=dict(size=11, color='black'))
+)])
+
+# Update the layout for the table
+fig.update_layout(
+    title='Statistics for Hosts Grouped by Listings Count',
+    margin=dict(t=40, b=40, l=40, r=40),
+)
+
+# Show the interactive table
+fig.show()
+```
+
+Explaination: 
+
+1
+
+> **Hypothesis 2: Entire home/ apartment distributed separated randomly in London**
+
+```{python}
+from requests import get
+from urllib.parse import urlparse
+
+def cache_data(src:str, dest:str) -> str:
+    """
+
+    *this creates function called cache_data so that it can store the data locally to reuse
+
+
+    """
+    url = urlparse(src) # We assume that this is some kind of valid URL
+    fn  = os.path.split(url.path)[-1] # Extract the filename q = (url.path)[??]
+    dfn = os.path.join(dest,fn) # Destination filename
+
+    if not os.path.isfile(dfn) or os.path.getsize(dfn) < 250: #Ensures the file exists or check whether the file size is smaller than 250byte > trigger download
+
+        print(f"{dfn} not found, downloading!")
+
+        path = os.path.split(dest)
+
+        if len(path) >= 1 and path[0] != '': #Verifies that the first part of the split (the directory) is not empty
+            os.makedirs(os.path.join(*path), exist_ok=True)
+
+        with open(dfn, "wb") as file:
+            response = get(src)
+            file.write(response.content) ##q = ??.content
+
+        print("\tDone downloading...")
+
+    else:
+        print(f"Found {dfn} locally!")
+
+    return dfn
+```
+
+```{python}
+#Load the Borough geopackage file
+ddir = os.path.join('data','geo') # destination directory
+spath = 'https://github.com/jreades/fsds/blob/master/data/src/' # source path
+boros = gpd.read_file( cache_data(spath+'Boroughs.gpkg?raw=true', ddir) )
+
+#Check the CRS
+boros.crs
+```
+
+```{python}
+#Combining all the data
+combined_df = pd.concat([df_202312, df_202403, df_202406, df_202409], ignore_index=True)
+#Ensure there are no duplicates in id column
+combined_df = combined_df.drop_duplicates(subset='id', keep='first')
+# Get the total number of columns
+num_columns = combined_df.shape[0]
+print(f"Total number of columns: {num_columns}")
+```
+
+```{python}
+#Convert Airbnb data into Geodataframe
+
+from shapely.geometry import Point
+combined_df = gpd.GeoDataFrame(combined_df,
+geometry=[Point(x,y) for x, y in zip(combined_df.longitude,combined_df.latitude)])
+
+combined_df = gpd.GeoDataFrame(combined_df,
+geometry=gpd.points_from_xy(combined_df.longitude, combined_df.latitude, crs='epsg:4326'))
+```
+
+```{python}
+#Change into British National Grid
+combined_gdf = combined_df.to_crs('epsg:27700')
+combined_gdf.head(1)
+```
+
+```{python}
+# Create a pivot table to count the number of each room_type per borough
+pivot_table = combined_gdf.pivot_table(index='neighbourhood', columns='room_type', aggfunc='size', fill_value=0)
+
+pivot_table['Total'] = pivot_table.sum(axis=1)
+
+# Sort by the Total column in descending order
+pivot_table = pivot_table.sort_values(by='Total', ascending=False)
+print(pivot_table)
+```
+
+```{python}
+# Reset the index of the pivot table to ensures that both DataFrames have a consistent structure
+pivot_table = pivot_table.reset_index()
+
+# Merge the pivot table with the boroughs GeoDataFrame
+boroughs_with_counts = boros.merge(pivot_table, how='left', left_on='NAME', right_on='neighbourhood')
+print(boroughs_with_counts.columns)
+```
+
+```{python}
+boroughs_with_counts = boroughs_with_counts.to_crs(epsg=27700)
+
+import mapclassify as mc
+
+# Classify the data using Natural Breaks
+classifier = mc.NaturalBreaks(boroughs_with_counts['Entire home/apt'], k=5)  # k is the number of classes
+boroughs_with_counts['natural_breaks'] = classifier.yb  # Assign classification labels to a new column
+
+# Define custom breaks and labels
+breaks = [798, 3473, 6660, 13245, 20530, 32696]  # One extra edge to create 5 bins
+labels = ['798-3472', '3473-6659', '6660-13244', '13245-20529', '20530-32695']  # Match the number of bins - 1
+
+# Classify the data using pd.cut
+boroughs_with_counts['natural_breaks'] = pd.cut(
+    boroughs_with_counts['Entire home/apt'],
+    bins=breaks,
+    labels=labels,
+    include_lowest=True
+)
+
+# Plot the map with custom breaks
+fig, ax = plt.subplots(figsize=(8, 6))
+boroughs_with_counts.plot(
+    column='natural_breaks',
+    cmap='viridis',
+    legend=True,
+    edgecolor='black',
+    ax=ax
+)
+
+# Customize the legend
+legend = ax.get_legend()
+legend.set_title('Entire Home/Apt Count (Range)')
+legend.set_loc('upper right')          # Center align the legend
+
+# Title and adjustments
+ax.set_title('Number of Entire Apartments per Borough (Custom Ranges)')
+plt.tight_layout()
+plt.savefig('map_entire_apartments_custom_breaks.png', dpi=300, bbox_inches='tight')  # Save the map
+plt.show()
+
+# Optional: Bar plot of number of entire apartments per borough
+boroughs_with_counts = boroughs_with_counts.sort_values(by='Entire home/apt', ascending=False)
+
+fig, ax2 = plt.subplots(figsize=(8, 5))
+ax2.bar(boroughs_with_counts['neighbourhood'], boroughs_with_counts['Entire home/apt'], color='skyblue', edgecolor='black')
+ax2.set_title('Count of Entire Home/Apartments per Borough (Sorted)')
+ax2.set_xlabel('Borough')
+ax2.set_ylabel('Count of Entire Home/Apartments')
+plt.xticks(rotation=90)
+plt.tight_layout()
+plt.show()
+```
+
+The borough with the highest number of entire home or apartment Airbnb listing is Borough of Wesminster, while Havering, Bexley, and Sutton are the borough with lowest number of Airbnb listing as entire home/apartment. Airbnb listing of entire home and apartment are concentrated in central London areas.
+
+## 7. Drawing on your previous answers, and supporting your response with evidence (*e.g.* figures, maps, EDA/ESDA, and simple statistical analysis/models drawing on experience from, e.g., CASA0007), how *could* the InsideAirbnb data set be used to inform the regulation of Short-Term Lets (STL) in London? 
+
+### **7.1 set the data**
+
+```{python}
+import re
+import nltk
+from wordcloud import WordCloud
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from urllib.parse import urlparse
+from requests import get
+```
+
+```{python}
+ddir = os.path.join('data', 'listings')  # Destination directory
+spath1 = 'https://data.insideairbnb.com/united-kingdom/england/london/2024-09-06/data/listings.csv.gz'
+spath2 = 'https://data.insideairbnb.com/united-kingdom/england/london/2024-09-06/data/reviews.csv.gz'
+file_path1 = cache_data(spath1, ddir)
+file_path2 = cache_data(spath2, ddir)
+```
+
+```{python}
+# load data
+df_listings = pd.read_csv(file_path1)
+df_reviews = pd.read_csv(file_path2)
+```
+
+```{python}
+# 1. Remove duplicates based on 'id' column in the Airbnb listings
+# This ensures we don't count the same listing multiple times
+df_listings = df_listings.drop_duplicates(subset='id')  # Use 'id' column to check duplicates
+
+# 2. remove missing data
+import matplotlib.pyplot as plt
+# Remove rows with missing amenities and description
+df_listings_1 = df_listings.dropna(subset=['amenities'])
+df_listings_2 = df_listings.dropna(subset=['name'])
+df_listings_3 = df_listings.dropna(subset=['description'])
+
+# remove
+# 3. transform data to geodataframe
+from shapely.geometry import Point
+df_listings  = gpd.GeoDataFrame(df_listings , 
+                geometry=[Point(x,y) for x, y in zip(df_listings .longitude,df_listings .latitude)])
+
+df_listings  = gpd.GeoDataFrame(df_listings ,
+      geometry=gpd.points_from_xy(df_listings .longitude, df_listings .latitude, crs='epsg:4326'))
+
+# reprojection
+gdf_final_listing  = df_listings.to_crs(epsg=27700)
+print(gdf_final_listing.crs)
+```
+
+```{python}
+#load london ward data
+ddir = os.path.join('data', 'geo')  # Destination directory
+spath3 = 'https://data.london.gov.uk/download/statistical-gis-boundary-files-london/08d31995-dd27-423c-a987-57fe8e952990/London-wards-2018.zip'
+file_path3 = cache_data(spath3, ddir)
+```
+
+```{python}
+import zipfile
+# unzip file
+with zipfile.ZipFile(file_path3, 'r') as zip_ref:
+    zip_ref.extractall(ddir)  
+
+print(f"Files extracted to: {ddir}")
+```
+
+```{python}
+london_ward = gpd.read_file(os.path.join(ddir, "London-wards-2018_ESRI", "London_Ward_CityMerged.shp"))
+london_ward = london_ward.to_crs(epsg=27700)
+```
+
+### **7.2 Digital Nomad Properties**
+
+### 7.2.1 filter Digital Nomad Properties based on amenities
+
+```{python}
+# filter Digital Nomad Properties
+# Step 1: Define keywords for Digital Nomad Properties
+# # define keywords list，suitable for Digital Nomad Properties 
+required_keywords = ['wifi', 'internet']
+required_keywords2= ['chair']
+optional_keywords = r'\b(?:workspace|dedicated desk|monitor|ergonomic desk|meeting room|coworking space|' \
+                    r'quiet space|long-term stays allowed|adjustable lighting|coffee)\b'
+                    
+# Filter properties containing relevant keywords（based on amenities）
+dn_props = df_listings_1[
+    df_listings_1['amenities'].apply(lambda x: any(req_kw in x.lower() for req_kw in required_keywords) if pd.notnull(x) else False)  # at least one required_keywords
+    & df_listings_1['amenities'].apply(lambda x: any(req_kw in x.lower() for req_kw in required_keywords2) if pd.notnull(x) else False)
+    & df_listings_1 ['amenities'].str.contains(optional_keywords, regex=True, flags=re.IGNORECASE, na=False)  # at least one optional_keywords
+].copy()
+
+
+print(f"There are {dn_props.shape[0]:,} Digital Nomad Properties.")
+```
+
+```{python}
+# transform dn_props into geodattaframe
+from shapely.geometry import Point
+import matplotlib.pyplot as plt
+
+# create gdf data through longitude and latitude
+geometry = gpd.points_from_xy(dn_props['longitude'], dn_props['latitude'])
+
+# transform to GeoDataFrame
+gdf_dn = gpd.GeoDataFrame(dn_props, geometry=geometry)
+
+# set crs WGS84 (EPSG:4326)
+gdf_dn.set_crs(epsg=4326, inplace=True)
+gdf_dn = gdf_dn.to_crs(epsg=27700)
+
+# clip data
+gdf_dn = gpd.clip(gdf_dn, london_ward)
+```
+
+```{python}
+import matplotlib.pyplot as plt
+
+# create a scatter map
+fig, ax = plt.subplots(figsize=(8, 8))
+
+# draw the boundary of london wards
+london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
+
+# draw Digital Nomad Properties points
+gdf_dn.plot(ax=ax, marker="o", color="orchid", markersize=8, alpha=0.5, label="Digital Nomad Properties")
+
+# add title and legend
+plt.title("Digital Nomad Properties in London", fontsize=16)
+plt.legend()
+
+# show the map
+plt.show()
+```
+
+While digital nomad theme properties can be found almost anywhere in London, most of them are concentrated in Central London areas.
+
+### 7.2.2 calculate the density of Digital Nomad Properties
+
+```{python}
+# calculate the density of Properties in different themes
+# step 1: calculate the number of total Digital Nomad Properties in London
+total_number_of_dn = len(gdf_dn)
+print(total_number_of_dn)
+```
+
+```{python}
+# step 2: for digital nomad properties:
+## 1. Calculate points within each ward using intersection
+london_ward["DN_List"] = london_ward.geometry.apply(
+    lambda ward: gdf_dn[gdf_dn.intersects(ward)].index.tolist()
+)
+
+## 2. Calculate the count of DN points within each ward
+london_ward["DN_Count"] = london_ward["DN_List"].apply(len)
+
+## 3. Calculate density 
+london_ward["DN_Density"] = london_ward["DN_Count"] / total_number_of_dn
+
+# 4. Inspect the results
+print(london_ward[["GSS_CODE", "DN_Count", "DN_Density"]].head())
+
+# 5.Plot density distribution
+fig, ax = plt.subplots(figsize=(8, 8))
+london_ward.plot(column="DN_Density", ax=ax, cmap="coolwarm", legend=True, 
+                 legend_kwds={"label": "Digital Nomad Properties Density"})
+plt.title("Digital Nomad Properties Density in London Wards", fontsize=16)
+plt.show()
+```
+
+### 7.2.3 spatial analysis for Digital Nomad Properties
+
+```{python}
+# calcualte spatial autocorrelation（Moran's I）
+# creating a spatial weights matrix
+from libpysal import weights
+import esda
+w = weights.Queen.from_dataframe(london_ward)
+w.transform = 'r'
+
+# calculate Moran's I
+y = london_ward['DN_Density'].values
+moran = esda.Moran(y, w)
+print(f"Moran's I: {moran.I}")
+print(f"p-value: {moran.p_sim}")
+```
+
+```{python}
+# Perform Local Moran's I Analysis
+lisa = esda.Moran_Local(y, w)
+
+threshold_p_value = 0.05
+london_ward['DN_label'] = np.where(
+    (lisa.p_sim < threshold_p_value) & (lisa.q == 1),
+    'Hotspot',
+    'Non-Hotspot'
+)
+
+# Plot LISA Results
+fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+london_ward[london_ward['DN_label'] == 'Hotspot'].plot(ax=ax, color='red', label='Hotspot')
+london_ward[london_ward['DN_label'] == 'Non-Hotspot'].plot(ax=ax, color='orange', label='Non-Hotspot')
+ax.set_title('Hotspot vs Non-Hotspot Areas for Digital Nomad Properties Density')
+handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Hotspot'),
+           plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='Non-Hotspot')]
+
+ax.legend(handles=handles, loc='lower left', fontsize=8, title="LISA Categories")
+plt.tight_layout()
+plt.show()
+```
+
+The hotspot area for Airbnb that suitable for digital nomad are located in Central London
+
+### **7.3 Scenic View Properties**
+
+### 7.3.1 Filter Scenic View Properties
+
+```{python}
+# returns a data frame with all values set to True/False according to Null status
+df_reviews.isnull() 
+# counts these values by column (we'll see another option in a moment)
+df_reviews.isnull().sum(axis=0) 
+# Sort results in descending order
+df_reviews.isnull().sum(axis=0).sort_values(ascending=False) 
+```
+
+```{python}
+# Drop rows where 'comments' column has NaN values
+df_reviews = df_reviews.dropna(subset=['comments'])
+
+#Check the result
+df_reviews.isnull().sum(axis=0).sort_values(ascending=False) 
+```
+
+```{python}
+# Create the regular expression pattern for scenic views, landmarks, parks, museums, and famous places
+scenic_keywords = r'(?=scenic|landmark|iconic|museum|famous|historic|heritage|monument|well-known|popular|kensington palace|buckingham palace|tower|cathedral|gallery|London eye|bigben|westminster abbey|castle|warner bros|frameless|tussauds|sea life|IFS cloud|london dungeon)'
+
+# Filter rows where the 'description' column contains any of the specified keywords
+scenic_landmark = df_reviews[
+    df_reviews.comments.str.contains(scenic_keywords, regex=True, flags=re.IGNORECASE)  # Apply regex
+]
+```
+
+```{python}
+# Get the number of properties in the filtered DataFrame
+num_row = len(scenic_landmark)
+print(num_row)
+```
+
+```{python}
+'''
+This is the dataset that have lat long and reviews based on the scenic view theme
+'''
+
+scenic_landmark.head(1)
+
+scenic_landmark_unique = scenic_landmark.drop_duplicates(subset='listing_id', keep='first')
+
+num_rows = len(scenic_landmark_unique)
+print(num_rows)
+```
+
+```{python}
+# Columns to select in listings
+columns_to_keep = ['id', 'name', 'host_id', 'latitude', 'longitude', 'room_type', 'price', 'minimum_nights_avg_ntm','availability_365','reviews_per_month']
+df_listings_selected = df_listings[columns_to_keep]
+
+# Perform an inner join
+df_inner_join = pd.merge(scenic_landmark_unique, df_listings_selected , left_on='listing_id', right_on='id', how='inner')
+num_rows = len(df_inner_join)
+print(num_rows)
+```
+
+```{python}
+# transform df_inner_join into geodataframe
+gdf_sv = gpd.GeoDataFrame(df_inner_join, 
+                geometry=[Point(x,y) for x, y in zip(df_inner_join.longitude,df_inner_join.latitude)])
+
+gdf_sv = gpd.GeoDataFrame(df_inner_join,
+      geometry=gpd.points_from_xy(df_inner_join.longitude, df_inner_join.latitude, crs='epsg:4326'))
+gdf_sv = gdf_sv.to_crs(epsg=27700)
+
+# clip data
+gdf_sv = gpd.clip(gdf_sv, london_ward)
+```
+
+```{python}
+# create a scatter map
+fig, ax = plt.subplots(figsize=(8, 8))
+
+# draw the boundary of london wards
+london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
+
+# draw Scenic View Properties points
+gdf_sv.plot(ax=ax, marker="o", color="orchid", markersize=8, alpha=0.5, label="Scenic View Properties")
+
+# add title and legend
+plt.title("Scenic View Properties in London", fontsize=16)
+plt.legend()
+
+# show the map
+plt.show()
+```
+
+Based on the map, most of Airbnb that advertised as having great scenic view are concentrated in Central London.
+
+### 7.3.2 calculate the density of Scenic View Properties
+
+```{python}
+# 1. calculate the total number of Scenic View Properties in London
+total_number_of_sv = len(gdf_sv)
+
+# 2. Calculate points within each ward using intersection
+london_ward["SV_List"] = london_ward.geometry.apply(
+    lambda ward: gdf_sv[gdf_sv.intersects(ward)].index.tolist()
+)
+
+# 3. Calculate the count of DN points within each ward
+london_ward["SV_Count"] = london_ward["SV_List"].apply(len)
+
+# 4. Calculate density
+london_ward["SV_Density"] = london_ward["SV_Count"] / total_number_of_sv
+
+# 5. Inspect the results
+print(london_ward[["GSS_CODE", "NAME", "SV_Count", "SV_Density"]].head())
+
+# 6.Plot density distribution
+fig, ax = plt.subplots(figsize=(8, 8))
+london_ward.plot(column="SV_Density", ax=ax, cmap="coolwarm", legend=True, 
+                 legend_kwds={"label": "Scenic View Properties Density"})
+plt.title("Scenic View Properties Density in London Wards", fontsize=16)
+plt.show()
+```
+
+### 7.3.3 spatial analysis for Scenic View Properties
+
+```{python}
+# calcualte spatial autocorrelation（Moran's I）
+# calculate Moran's I
+y = london_ward['SV_Density'].values
+moran = esda.Moran(y, w)
+print(f"Moran's I: {moran.I}")
+print(f"p-value: {moran.p_sim}")
+```
+
+```{python}
+# Perform Local Moran's I Analysis
+lisa = esda.Moran_Local(y, w)
+
+threshold_p_value = 0.05
+london_ward['SV_label'] = np.where(
+    (lisa.p_sim < threshold_p_value) & (lisa.q == 1),
+    'Hotspot',
+    'Non-Hotspot'
+)
+
+# Plot LISA Results
+fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+london_ward[london_ward['SV_label'] == 'Hotspot'].plot(ax=ax, color='red', label='Hotspot')
+london_ward[london_ward['SV_label'] == 'Non-Hotspot'].plot(ax=ax, color='orange', label='Non-Hotspot')
+ax.set_title('Hotspot vs Non-Hotspot Areas for Scenic View Properties Density')
+handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Hotspot'),
+           plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='Non-Hotspot')]
+
+ax.legend(handles=handles, loc='lower left', fontsize=8, title="LISA Categories")
+plt.tight_layout()
+plt.show()
+```
+
+Based on Local Moran's I analysis, the significant hotspot of Airbnb that advertised as having great scenic view are concentrated in Central London.
+
+### **7.4 Close To Tube Properties**
+
+### 7.4.1 filter Close To Tube Properties based on name
+
+```{python}
+# Filter data based on the "name" column containing specific phrases
+keywords = ['station', 'underground', 'overground', 'tube', 'DLR', 'line', 'metro']
+ctt_props = df_listings_2[df_listings_2['name'].str.contains('|'.join(keywords), case=False, na=False)]
+```
+
+```{python}
+# transform ctt_props into geodattaframe
+# create gdf data through longitude and latitude
+geometry = gpd.points_from_xy(ctt_props['longitude'], ctt_props['latitude'])
+
+# transform to GeoDataFrame
+gdf_ctt = gpd.GeoDataFrame(ctt_props, geometry=geometry)
+
+# set crs WGS84 (EPSG:4326)
+gdf_ctt.set_crs(epsg=4326, inplace=True)
+gdf_ctt = gdf_ctt.to_crs(epsg=27700)
+
+# clip data
+gdf_ctt = gpd.clip(gdf_ctt, london_ward)
+```
+
+```{python}
+# create a scatter map
+fig, ax = plt.subplots(figsize=(8, 8))
+
+# draw the boundary of london wards
+london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
+
+# draw Scenic View Properties points
+gdf_ctt.plot(ax=ax, marker="o", color="orchid", markersize=8, alpha=0.5, label="Scenic View Properties")
+
+# add title and legend
+plt.title("Close To Tube Properties in London", fontsize=16)
+plt.legend()
+
+# show the map
+plt.show()
+```
+
+Based on the map, most of Airbnb that advertised as having good tube connectivity are concentrated in Central London.
+
+### 7.4.2 calculate the density of Close To Tube Properties
+
+```{python}
+# calculate the density of Properties in different themes
+# step 1: calculate the number of total Close To Tube Properties in London
+total_number_of_ctt = len(gdf_ctt)
+print(total_number_of_ctt)
+```
+
+```{python}
+# step 2: for Close To Tube Properties:
+## 1. Calculate points within each ward using intersection
+london_ward["CTT_List"] = london_ward.geometry.apply(
+    lambda ward: gdf_ctt[gdf_ctt.intersects(ward)].index.tolist()
+)
+
+## 2. Calculate the count of DN points within each ward
+london_ward["CTT_Count"] = london_ward["CTT_List"].apply(len)
+
+## 3. Calculate density 
+london_ward["CTT_Density"] = london_ward["CTT_Count"] / total_number_of_ctt
+
+# 4. Inspect the results
+print(london_ward[["GSS_CODE", "CTT_Count", "CTT_Density"]].head())
+
+# 5.Plot density distribution
+fig, ax = plt.subplots(figsize=(8, 8))
+london_ward.plot(column="CTT_Density", ax=ax, cmap="coolwarm", legend=True, 
+                 legend_kwds={"label": "Close To Tube Properties Density"})
+plt.title("Close To Tube Properties Density in London Wards", fontsize=16)
+plt.show()
+```
+
+### 7.4.3 spatial analysis for Close To Tube Properties
+
+```{python}
+# calcualte spatial autocorrelation（Moran's I）
+# calculate Moran's I
+y = london_ward['CTT_Density'].values
+moran = esda.Moran(y, w)
+print(f"Moran's I: {moran.I}")
+print(f"p-value: {moran.p_sim}")
+```
+
+```{python}
+# Perform Local Moran's I Analysis
+lisa = esda.Moran_Local(y, w)
+
+threshold_p_value = 0.05
+london_ward['CTT_label'] = np.where(
+    (lisa.p_sim < threshold_p_value) & (lisa.q == 1),
+    'Hotspot',
+    'Non-Hotspot'
+)
+
+# Plot LISA Results
+fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+london_ward[london_ward['CTT_label'] == 'Hotspot'].plot(ax=ax, color='red', label='Hotspot')
+london_ward[london_ward['CTT_label'] == 'Non-Hotspot'].plot(ax=ax, color='orange', label='Non-Hotspot')
+ax.set_title('Hotspot vs Non-Hotspot Areas for Close to Tube Properties Density')
+handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Hotspot'),
+           plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='Non-Hotspot')]
+
+ax.legend(handles=handles, loc='lower left', fontsize=8, title="LISA Categories")
+plt.tight_layout()
+plt.show()
+```
+
+Based on Local Moran's I analysis, the significant hotspot of Airbnb that advertised as close to tube are concentrated in Central London. While we can see some wards that a bit separated from central London also has significant hotspot.
+
+### **7.5 Style-Specific Properties**
+
+### 7.5.1  Filtering for Style-Specific Properties
+
+```{python}
+# filter Style-Specific Properties
+## Define more precise keywords for Style-Specific Properties
+style_keywords_vintage = r'\b(?:vintage|retro|antique|mid-century|old-fashioned|classic|art-deco|nostalgic)\b'
+style_keywords_rustic = r'\b(?:rustic|farmhouse|wood|cabin|country|countryside|barn|log|shabby chic)\b'
+style_keywords_japanese = r'\b(?:Japanese|Zen|tatami|wabi-sabi|shoji|shinto|Japanese garden|bamboo|futon)\b'
+
+## Filter properties containing relevant keywords based on the description
+ss_props = df_listings_3[
+    df_listings_3['description'].apply(lambda x: any(req_kw in x.lower() for req_kw in style_keywords_rustic.split("|")) if pd.notnull(x) else False)
+    | df_listings_3['description'].apply(lambda x: any(req_kw in x.lower() for req_kw in style_keywords_vintage.split("|")) if pd.notnull(x) else False)
+    | df_listings_3['description'].apply(lambda x: any(req_kw in x.lower() for req_kw in style_keywords_japanese.split("|")) if pd.notnull(x) else False)
+].copy()
+
+## Add the "Style" column
+def assign_style(description):
+    if pd.isnull(description):
+        return None
+    description = description.lower()
+    if any(req_kw in description for req_kw in style_keywords_vintage.split("|")):
+        return 'vintage'
+    elif any(req_kw in description for req_kw in style_keywords_rustic.split("|")):
+        return 'rustic'
+    elif any(req_kw in description for req_kw in style_keywords_japanese.split("|")):
+        return 'japanese'
+    return None
+
+ss_props['Style'] = ss_props['description'].apply(assign_style)
+
+print(f"There are {ss_props.shape[0]:,} Style-Specific Properties.")
+print(ss_props[['description', 'Style']].head())  
+```
+
+```{python}
+from shapely.geometry import Point
+import matplotlib.pyplot as plt
+
+# create gdf data through longitude and latitude
+geometry = gpd.points_from_xy(ss_props['longitude'], ss_props['latitude'])
+
+# transform to GeoDataFrame
+gdf_ss = gpd.GeoDataFrame(ss_props, geometry=geometry)
+
+# set crs WGS84 (EPSG:4326)
+gdf_ss.set_crs(epsg=4326, inplace=True)
+gdf_ss = gdf_ss.to_crs(epsg=27700)
+
+# clip data
+gdf_ss = gpd.clip(gdf_ss, london_ward)
+```
+
+```{python}
+import matplotlib.pyplot as plt
+
+# create a scatter map
+fig, ax = plt.subplots(figsize=(8, 8))
+
+# set the color
+style_colors = {
+    'rustic': 'lightblue',
+    'vintage': 'purple',
+    'japanese': 'gold'
+}
+
+# draw the boundary of london wards
+london_ward.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.5, label="London Wards")
+
+# draw Style-Specific Properties points
+for style, color in style_colors.items():
+    subset = gdf_ss[gdf_ss['Style'] == style]  # filter subset of Style
+    subset.plot(
+        ax=ax,
+        marker="o",
+        color=color,
+        markersize=8,
+        alpha=0.7,
+        label=style.capitalize()  # use capital as lable
+    )
+
+# add title and legend
+plt.title("Style-Specific Properties in London", fontsize=16)
+plt.legend()
+
+# show the map
+plt.show()
+```
+
+There are only few Japanese style properties while most style-specific properties are dominated with Rustic and Vintage style.
+
+### 7.5.2 calculate the density of Style-Specific Properties 
+
+```{python}
+# calculate the density of Properties in different themes
+# step 1: calculate the number of total listings in London
+total_number_of_ss = len(gdf_ss)
+print(total_number_of_ss)
+```
+
+```{python}
+# step 2: for Style-Specific Properties:
+## 1. Calculate points within each ward using intersection
+london_ward["SS_List"] = london_ward.geometry.apply(
+    lambda ward: gdf_ss[gdf_ss.intersects(ward)].index.tolist()
+)
+
+## 2. Calculate the count of SS points within each ward
+london_ward["SS_Count"] = london_ward["SS_List"].apply(len)
+
+## 3. Calculate density 
+london_ward["SS_Density"] = london_ward["SS_Count"] / total_number_of_ss
+
+# 4. Inspect the results
+print(london_ward[["GSS_CODE", "SS_Count", "SS_Density"]].head())
+
+# 5.Plot density distribution
+fig, ax = plt.subplots(figsize=(8, 8))
+london_ward.plot(column="SS_Density", ax=ax, cmap="coolwarm", legend=True, 
+                 legend_kwds={"label": "Style-Specific Properties Density"})
+plt.title("Style-Specific Properties Density in London Wards", fontsize=16)
+plt.show()
+```
+
+### 7.5.3 spatial analysis for Style-Specific Properties
+
+```{python}
+import esda
+
+# calcualte spatial autocorrelation（Moran's I）
+# creating a spatial weights matrix
+from libpysal import weights
+import esda
+w = weights.Queen.from_dataframe(london_ward)
+w.transform = 'r'
+
+# calcualte spatial autocorrelation（Moran's I）
+# calculate Moran's I
+y = london_ward['SS_Density'].values
+moran = esda.Moran(y, w)
+print(f"Moran's I: {moran.I}")
+print(f"p-value: {moran.p_sim}")
+```
+
+```{python}
+# Perform Local Moran's I Analysis
+lisa = esda.Moran_Local(y, w)
+
+threshold_p_value = 0.05
+london_ward['SS_label'] = np.where(
+    (lisa.p_sim < threshold_p_value) & (lisa.q == 1),
+    'Hotspot',
+    'Non-Hotspot'
+)
+```
+
+```{python}
+# Plot LISA Results
+fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+london_ward[london_ward['SS_label'] == 'Hotspot'].plot(ax=ax, color='red', label='Hotspot')
+london_ward[london_ward['SS_label'] == 'Non-Hotspot'].plot(ax=ax, color='orange', label='Non-Hotspot')
+ax.set_title('Hotspot vs Non-Hotspot Areas for Style-Specific Properties Density')
+handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=10, label='Hotspot'),
+           plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='orange', markersize=10, label='Non-Hotspot')]
+
+ax.legend(handles=handles, loc='lower left', fontsize=8, title="LISA Categories")
+plt.tight_layout()
+plt.show()
+```
+
+Based on Local Moran's I analysis, the style-specific Airbnb Properties tend to dispersed, while some are concentrated in Central London.
+
+### **7.6 Occupancy and Revenue of each theme**
+
+In order to estimate the popularity of listings, we need to know the occupancy of listings which is also known as the number of nights sold. According to Wang's research [@wang2024] (Wang, Livingston, 2024), we can calculate the number of nights using this formular:
+> ***nights = reviews / reviewrate * minstay***
+>
+> where reviewrate is the review rate. As insideairbnb and Cosh's research [@cosh2020] both assume that about 50% of costumers will leave a review, we will take 50% as review rate. Reviews is the number of reviews per months. Minstay is the average minimum nights to stay in each listing. 
+
+```{python}
+# Calculate occupancy
+# Add 'occ_rate' column in total listings
+gdf_final_listing['occ_rate'] = (gdf_final_listing['reviews_per_month'] / 0.5) * gdf_final_listing['minimum_nights_avg_ntm']
+
+#Add 'occ_rate' column for the respective key theme
+gdf_dn['occ_rate'] = (gdf_dn['reviews_per_month'] / 0.5) * gdf_dn['minimum_nights_avg_ntm']
+gdf_sv['occ_rate'] = (gdf_sv['reviews_per_month'] / 0.5) * gdf_sv['minimum_nights_avg_ntm']
+gdf_ctt['occ_rate'] = (gdf_ctt['reviews_per_month'] / 0.5) * gdf_ctt['minimum_nights_avg_ntm']
+gdf_ss['occ_rate'] = (gdf_ss['reviews_per_month'] / 0.5) * gdf_ss['minimum_nights_avg_ntm']
+
+# Dictionary to map dataset names to the respective dataframes
+datasets = {
+    "Total Airbnb Listings": gdf_final_listing,
+    "Digital Nomad Listings": gdf_dn,
+    "Scenic-Iconic Listings": gdf_sv,
+    "Transport-related Listings": gdf_ctt,
+    "Style-Specific Listings": gdf_ss
+}
+
+# Calculate the average occupancy rate for each dataset
+avg_occupancy_rates = []
+
+# Loop through each dataset and calculate the average occupancy rate
+for dataset_name, gdf in datasets.items():
+    avg_occ_rate = gdf['occ_rate'].mean()  # Calculate the mean of 'occ_rate' for the current dataset
+    avg_occupancy_rates.append(avg_occ_rate)
+
+# Create a horizontal bar chart
+plt.figure(figsize=(10, 6))
+plt.barh(list(datasets.keys()), avg_occupancy_rates, color='skyblue')
+plt.xlabel('Average Occupancy Rate (Days)')
+plt.ylabel('Listing Type')
+plt.title('Average Occupancy Rate for Different Listings')
+plt.tight_layout()
+plt.show()
+```
+
+The highest listing type on the average occupancy rate is the scenic-iconic listings while the style-specific listings tend to have lower occupancy rate.
+
+```{python}
+# Loop through each dataset to drop NaN values in the 'price' column
+for dataset_name, gdf in datasets.items():
+    # Drop NaN values in the 'price' column
+    gdf = gdf.dropna(subset=['price'])
+
+
+# Initialize the avg_revenues list before the loop
+avg_revenues = []
+
+# Loop through each dataset to clean the 'price' column, calculate revenue, and print the average revenue
+for dataset_name, gdf in datasets.items():
+    # Ensure the 'price' column is a string and handle any missing or NaN values
+    gdf['price'] = gdf['price'].astype(str)  # Convert to string to avoid .str error
+    gdf['price'] = gdf['price'].replace('nan', '0')  # Replace any 'nan' string with '0' or handle as needed
+    
+    # Clean the 'price' column by removing '$' and ',' and convert it to float
+    gdf['price'] = (
+        gdf['price']
+        .str.replace('$', '', regex=False)  # remove '$'
+        .str.replace(',', '', regex=False)  # remove ','
+        .astype(float)                      # convert to float
+    )
+    
+    # Calculate 'revenue' using 'price' and 'occ_rate'
+    gdf['revenue'] = gdf['price'] * gdf['occ_rate']
+    
+    # Calculate the average of the 'revenue' column
+    average_revenue = gdf['revenue'].mean()
+    
+    # Store the result in the list along with the dataset name
+    avg_revenues.append((dataset_name, round(average_revenue, 2)))
+
+# Separate the dataset names and average revenues for plotting
+dataset_names, revenues = zip(*avg_revenues)
+
+# Create a horizontal bar plot
+plt.figure(figsize=(10, 6))
+plt.barh(dataset_names, revenues, color='skyblue')
+plt.xlabel('Average Revenue')
+plt.ylabel('Listing Type')
+plt.title('Average Revenue for Different Listings')
+plt.tight_layout()  # Adjust layout to avoid overlap
+plt.show()
+```
+
+The average revenue is the highest for Digital Nomad type listings while transport-related listings tend to be lowest.
+
+### **7.7 Conclusions and limitations**
+#### 7.7.1. Conclusions
+
+#### 7.7.2. Limitation
+
+The Natural Language Processing have many limitations, including the words and phrases that chosen for the analysis and how the data acquired. Some data may not be appropriate since the word that contain on the data may not represent our intended classification. 
+
+
+## Sustainable Authorship Tools
+
+Using the Terminal in Docker, you compile the Quarto report using `quarto render <group_submission_file>.qmd`.
+
+Your QMD file should automatically download your BibTeX and CLS files and any other required files. If this is done right after library loading then the entire report should output successfully.
+
+Written in Markdown and generated from [Quarto](https://quarto.org/). Fonts used: [Spectral](https://fonts.google.com/specimen/Spectral) (mainfont), [Roboto](https://fonts.google.com/specimen/Roboto) (<span style="font-family:Sans-Serif;">sansfont</span>) and [JetBrains Mono](https://fonts.google.com/specimen/JetBrains%20Mono) (`monofont`). 
+
+## References
+
+Wang, Y. et al., (2024). The challenges of measuring the short-term rental market: an analysis of open data on Airbnb activity, Housing Studies. Routledge, 39, 9, 2260–2279.
+
+Georgie Cosh, G.L.A., (2020). Short-term and holiday letting in London. GLA Housing and Land.
