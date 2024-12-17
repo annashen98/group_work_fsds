@@ -50,8 +50,8 @@ jupyter:
 import requests
 
 # URLs for the .bib and .csl files
-bib_url = "https://raw.githubusercontent.com/annashen98/group_work_fsds/65928e9bf22ec3080a250419132bdd9fd2e5c288/references.bib"
-csl_url = "https://raw.githubusercontent.com/annashen98/group_work_fsds/65928e9bf22ec3080a250419132bdd9fd2e5c288/harvard-cite-them-right.csl"
+bib_url = "https://github.com/annashen98/group_work_fsds/blob/2967812e90eb7fc007434be6aad42c699a76e9e3/references.bib"
+csl_url = "https://github.com/annashen98/group_work_fsds/blob/2967812e90eb7fc007434be6aad42c699a76e9e3/harvard-cite-them-right.csl"
 
 # Download the references.bib file
 response_bib = requests.get(bib_url)
@@ -1045,3 +1045,4 @@ Deboosere, R. et al. (2019). Location, location and professionalization: a multi
 Georgie Cosh, G.L.A., (2020). Short-term and holiday letting in London. GLA Housing and Land.
 
 Wang, Y. et al., (2024). The challenges of measuring the short-term rental market: an analysis of open data on Airbnb activity, Housing Studies. Routledge, 39, 9, 2260–2279.
+
