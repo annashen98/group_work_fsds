@@ -21,7 +21,7 @@ format:
         \addtokomafont{disposition}{\rmfamily}
     mainfont: Spectral
     sansfont: Roboto Flex
-    monofont: InputMonoCondensed
+    monofont: Liberation Mono
     papersize: a4
     geometry:
       - top=25mm
@@ -50,8 +50,8 @@ jupyter:
 import requests
 
 # URLs for the .bib and .csl files
-bib_url = "https://github.com/annashen98/group_work_fsds/blob/2967812e90eb7fc007434be6aad42c699a76e9e3/references.bib"
-csl_url = "https://github.com/annashen98/group_work_fsds/blob/2967812e90eb7fc007434be6aad42c699a76e9e3/harvard-cite-them-right.csl"
+bib_url = "https://raw.githubusercontent.com/annashen98/group_work_fsds/refs/heads/main/references.bib"
+csl_url = "https://raw.githubusercontent.com/annashen98/group_work_fsds/refs/heads/main/harvard-cite-them-right.csl"
 
 # Download the references.bib file
 response_bib = requests.get(bib_url)
@@ -74,47 +74,47 @@ else:
 
 ## 1. Who collected the InsideAirbnb data?
 
-::: {.duedate}
+
 
 The Inside Airbnb data is collected by various collaborators and partners, with initial analysis by Murray Cox and web design for user experience led by John Morris.
 
 
-:::
+
 
 
 
 ## 2. Why did they collect the InsideAirbnb data?
 
-::: {.duedate}
+
 
 The reason for InsideAirbnb data collection is to provide information about Airbnb listings to communities, which can be analysed to identify the impact of Airbnb on residential communities and the hotel industry. It also aims to offer  transparency on the effects of Airbnb rentals on local housing markets.
 
-:::
+
 
 ## 3. How did they collect it?
 
-::: 
+
 
 InsideAirbnb collected publicly accessible data compiled from the Airbnb web-site. The dataset represents a snapshot of listings available every 3 months  (listings deleted by Airbnb will not appear). After cleansed and verified the data would be aggregated by excluding private information, which actually had been anonymized by Airbnb itself.
 
-:::
+
 
 ## 4. How does the method of collection (Q3) impact the completeness and/or accuracy of the InsideAirbnb data? How well does it represent the process it seeks to study, and what wider issues does this raise?
-:::
+
 The method of data collection for InsideAirbnb impacts the completeness and accuracy of the data. In terms of completeness, InsideAirbnb collects data every three months, this infrequent collection may lead to gaps in capturing important details. In terms of accuracy, the data depends on Airbnb's public-facing information. Meanwhile, data collection ensures the privacy of each listing’s exact location, it sacrifices spatial precision, which limits a detailed spatial analysis.
 
 The InsideAirbnb dataset also provides a foundational view of short-term lettings in London, highlighting key details such as property types, host information, and general availability. However, it has not fully captured the dynamic and complex nature of short-term rental markets. The limitation of the data will influence policymakers’ decisions. Policymakers require precise spatial and temporal insights to understand regional housing availability, neighborhood dynamics, and tourism management. 
 
-:::
+
 
 ## 5. What ethical considerations does the use of the InsideAirbnb data raise? 
 
-::: 
+
 
 These ethical considerations are addressed from three perspectives: information sources, location information, and neighborhood names. InsideAirbnb ensures that no private details such as names, photographs, or reviews are used inappropriately, as they are all publicly accessible on the platform. The location data for listings is anonymized by Airbnb, with coordinates scattered within 150 meters range of the actual address to protect privacy. Furthermore, neighborhood names are excluded due to inaccuracies in Airbnb’s naming system, and geographic coordinates are used in conjunction with official city boundaries for more accurate analysis. The site serves a non-commercial purpose aimed at public analysis, discussion, and community benefit.
 
 
-:::
+
 
 ## 6. With reference to the InsideAirbnb data (*i.e.* using numbers, figures, maps, and descriptive statistics), what does an analysis of Hosts and the types of properties that they list suggest about the nature of Airbnb lettings in London? 
 
@@ -1033,7 +1033,7 @@ Both Scenic-Iconic Listings and Digital Nomad Listings offer strong opportunitie
 
 ### **7.7 Conclusions and limitations**
 #### 7.7.1. Conclusions
-London’s 90-day short-term rental regulation limits market flexibility but offers an opportunity for refined policies and resource optimization through a deeper understanding of property distribution and branding potential. For landlords, improving  their business quality is needed as the more professionally Airbnb listings are managed(such as the number of reviews per listing), the higher average monthly revenue they stand to make[@Deboosere2019]. The government could consider flexible policies based on seasonal demand, such as relaxing the 90-day cap in central areas during peak tourist seasons to boost economic activity. Branding efforts could align with regulations by emphasizing unique landmark experiences to attract tourists. Alternatively, brands operating in central London could apply for mid- or long-term permits to meet the growing demand from digital nomads for extended stays.
+London’s 90-day short-term rental regulation limits market flexibility but offers an opportunity for refined policies and resource optimization through a deeper understanding of property distribution and branding potential. For landlords, improving  their business quality is needed as the more professionally Airbnb listings are managed(such as the number of reviews per listing), the higher average monthly revenue they stand to make [@Deboosere2019] . The government could consider flexible policies based on seasonal demand, such as relaxing the 90-day cap in central areas during peak tourist seasons to boost economic activity. Branding efforts could align with regulations by emphasizing unique landmark experiences to attract tourists. Alternatively, brands operating in central London could apply for mid- or long-term permits to meet the growing demand from digital nomads for extended stays.
 
 #### 7.7.2. Limitation
 
