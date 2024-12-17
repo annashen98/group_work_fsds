@@ -334,7 +334,6 @@ combined_df = pd.concat([df_202312, df_202403, df_202406, df_202409], ignore_ind
 combined_df = combined_df.drop_duplicates(subset='id', keep='first')
 # Get the total number of columns
 num_rows = combined_df.shape[0]
-print(f"Total number of rows: {num_rows}")
 ```
 
 ```{python}
@@ -351,7 +350,6 @@ geometry=gpd.points_from_xy(combined_df.longitude, combined_df.latitude, crs='ep
 ```{python}
 #Change into British National Grid
 combined_gdf = combined_df.to_crs('epsg:27700')
-combined_gdf.head(1)
 ```
 
 ```{python}
@@ -362,7 +360,6 @@ pivot_table['Total'] = pivot_table.sum(axis=1)
 
 # Sort by the Total column in descending order
 pivot_table = pivot_table.sort_values(by='Total', ascending=False)
-print(pivot_table)
 ```
 
 ```{python}
@@ -371,7 +368,6 @@ pivot_table = pivot_table.reset_index()
 
 # Merge the pivot table with the boroughs GeoDataFrame
 boroughs_with_counts = boros.merge(pivot_table, how='left', left_on='NAME', right_on='neighbourhood')
-print(boroughs_with_counts.columns)
 ```
 
 ```{python}
@@ -494,7 +490,6 @@ df_listings  = gpd.GeoDataFrame(df_listings ,
 
 # reprojection
 gdf_final_listing  = df_listings.to_crs(epsg=27700)
-print(gdf_final_listing.crs)
 ```
 
 ```{python}
@@ -509,8 +504,6 @@ import zipfile
 # unzip file
 with zipfile.ZipFile(file_path3, 'r') as zip_ref:
     zip_ref.extractall(ddir)  
-
-print(f"Files extracted to: {ddir}")
 ```
 
 ```{python}
@@ -604,16 +597,6 @@ london_ward["DN_Count"] = london_ward["DN_List"].apply(len)
 
 ## 3. Calculate density 
 london_ward["DN_Density"] = london_ward["DN_Count"] / total_number_of_dn
-
-# 4. Inspect the results
-print(london_ward[["GSS_CODE", "DN_Count", "DN_Density"]].head())
-
-# 5.Plot density distribution
-fig, ax = plt.subplots(figsize=(8, 8))
-london_ward.plot(column="DN_Density", ax=ax, cmap="coolwarm", legend=True, 
-                 legend_kwds={"label": "Digital Nomad Properties Density"})
-plt.title("Digital Nomad Properties Density in London Wards", fontsize=16)
-plt.show()
 ```
 
 ### 7.2.3 Spatial Analysis for Digital Nomad Properties
@@ -633,7 +616,6 @@ print(f"Moran's I: {moran.I}")
 print(f"p-value: {moran.p_sim}")
 ```
 
-Explanation : 
 The Moran's I value is 0.577 while the p-value is 0.001 meaning that the digital nomad properties has a spatial autocorrelation across the London Wards.
 
 ```{python}
@@ -667,16 +649,8 @@ The hotspot area for Airbnb that suitable for digital nomad are located in Centr
 ### 7.3.1 Filter Scenic-Iconic View Properties
 
 ```{python}
-# Sort results in descending order
-df_reviews.isnull().sum(axis=0).sort_values(ascending=False) 
-```
-
-```{python}
 # Drop rows where 'comments' column has NaN values
 df_reviews = df_reviews.dropna(subset=['comments'])
-
-#Check the result
-df_reviews.isnull().sum(axis=0).sort_values(ascending=False) 
 ```
 
 ```{python}
@@ -690,22 +664,10 @@ scenic_landmark = df_reviews[
 ```
 
 ```{python}
-# Get the number of properties in the filtered DataFrame
-num_row = len(scenic_landmark)
-print(num_row)
-```
-
-```{python}
 '''
 This is the dataset that have lat long and reviews based on the scenic view theme
 '''
-
-scenic_landmark.head(1)
-
 scenic_landmark_unique = scenic_landmark.drop_duplicates(subset='listing_id', keep='first')
-
-num_rows = len(scenic_landmark_unique)
-print(num_rows)
 ```
 
 ```{python}
@@ -715,8 +677,6 @@ df_listings_selected = df_listings[columns_to_keep]
 
 # Perform an inner join
 df_inner_join = pd.merge(scenic_landmark_unique, df_listings_selected , left_on='listing_id', right_on='id', how='inner')
-num_rows = len(df_inner_join)
-print(num_rows)
 ```
 
 ```{python}
@@ -752,7 +712,7 @@ plt.show()
 
 Based on the map, most of Airbnb that advertised as having great scenic view are concentrated in Central London.
 
-### 7.3.2 Calculate the Dnsity of Scenic-Iconic View Properties
+### 7.3.2 Calculate the Density of Scenic-Iconic View Properties
 
 ```{python}
 # 1. calculate the total number of Scenic-Iconic View Properties in London
@@ -768,16 +728,6 @@ london_ward["SV_Count"] = london_ward["SV_List"].apply(len)
 
 # 4. Calculate density
 london_ward["SV_Density"] = london_ward["SV_Count"] / total_number_of_sv
-
-# 5. Inspect the results
-print(london_ward[["GSS_CODE", "NAME", "SV_Count", "SV_Density"]].head())
-
-# 6.Plot density distribution
-fig, ax = plt.subplots(figsize=(8, 8))
-london_ward.plot(column="SV_Density", ax=ax, cmap="coolwarm", legend=True, 
-                 legend_kwds={"label": "Scenic View Properties Density"})
-plt.title("Scenic-Iconic View Properties Density in London Wards", fontsize=16)
-plt.show()
 ```
 
 ### 7.3.3 Spatial Analysis for Scenic-Iconic View Properties
@@ -791,7 +741,6 @@ print(f"Moran's I: {moran.I}")
 print(f"p-value: {moran.p_sim}")
 ```
 
-Explanation : 
 The Moran's I value is 0.731 while the p-value is 0.001 meaning that the scenic-iconic view properties has a spatial autocorrelation across the London Wards.
 
 ```{python}
@@ -872,7 +821,6 @@ Based on the map, most of Airbnb that advertised as having good tube connectivit
 # calculate the density of Properties in different themes
 # step 1: calculate the number of total Close To Tube Properties in London
 total_number_of_ctt = len(gdf_ctt)
-print(total_number_of_ctt)
 ```
 
 ```{python}
@@ -887,16 +835,6 @@ london_ward["CTT_Count"] = london_ward["CTT_List"].apply(len)
 
 ## 3. Calculate density 
 london_ward["CTT_Density"] = london_ward["CTT_Count"] / total_number_of_ctt
-
-# 4. Inspect the results
-print(london_ward[["GSS_CODE", "CTT_Count", "CTT_Density"]].head())
-
-# 5.Plot density distribution
-fig, ax = plt.subplots(figsize=(8, 8))
-london_ward.plot(column="CTT_Density", ax=ax, cmap="coolwarm", legend=True, 
-                 legend_kwds={"label": "Close To Tube Properties Density"})
-plt.title("Close To Tube Properties Density in London Wards", fontsize=16)
-plt.show()
 ```
 
 ### 7.4.3 Spatial Analysis for Close to Tube Properties
@@ -910,7 +848,6 @@ print(f"Moran's I: {moran.I}")
 print(f"p-value: {moran.p_sim}")
 ```
 
-Explanation : 
 The Moran's I value is 0.431 while the p-value is 0.001 meaning that the close to tube properties has a moderate degree of positive spatial autocorrelation across the London Wards.
 
 ```{python}
@@ -973,7 +910,6 @@ def assign_style(description):
 ss_props['Style'] = ss_props['description'].apply(assign_style)
 
 print(f"There are {ss_props.shape[0]:,} Style-Specific Properties.")
-print(ss_props[['description', 'Style']].head())  
 ```
 
 ```{python}
@@ -1038,7 +974,6 @@ There are only few Japanese style properties while most style-specific propertie
 # calculate the density of Properties in different themes
 # step 1: calculate the number of total listings in London
 total_number_of_ss = len(gdf_ss)
-print(total_number_of_ss)
 ```
 
 ```{python}
@@ -1053,16 +988,6 @@ london_ward["SS_Count"] = london_ward["SS_List"].apply(len)
 
 ## 3. Calculate density 
 london_ward["SS_Density"] = london_ward["SS_Count"] / total_number_of_ss
-
-# 4. Inspect the results
-print(london_ward[["GSS_CODE", "SS_Count", "SS_Density"]].head())
-
-# 5.Plot density distribution
-fig, ax = plt.subplots(figsize=(8, 8))
-london_ward.plot(column="SS_Density", ax=ax, cmap="coolwarm", legend=True, 
-                 legend_kwds={"label": "Style-Specific Properties Density"})
-plt.title("Style-Specific Properties Density in London Wards", fontsize=16)
-plt.show()
 ```
 
 ### 7.5.3 Spatial Analysis for Style-Specific Properties
@@ -1085,7 +1010,6 @@ print(f"Moran's I: {moran.I}")
 print(f"p-value: {moran.p_sim}")
 ```
 
-Explanation : 
 The Moran's I value is 0.503 while the p-value is 0.001 meaning that the digital style-specisific has a moderate degree of positive spatial autocorrelation across the London Wards.
 
 ```{python}
@@ -1229,17 +1153,10 @@ London's 90-day short-term rental regulation limits market flexibility, but it a
 
 The Natural Language Processing have many limitations, including the words and phrases that chosen for the analysis and how the data acquired. Some data may not be appropriate since the word that contain on the data may not represent our intended classification. 
 
-
-## Sustainable Authorship Tools
-
-Using the Terminal in Docker, you compile the Quarto report using `quarto render <group_submission_file>.qmd`.
-
-Your QMD file should automatically download your BibTeX and CLS files and any other required files. If this is done right after library loading then the entire report should output successfully.
-
-Written in Markdown and generated from [Quarto](https://quarto.org/). Fonts used: [Spectral](https://fonts.google.com/specimen/Spectral) (mainfont), [Roboto](https://fonts.google.com/specimen/Roboto) (<span style="font-family:Sans-Serif;">sansfont</span>) and [JetBrains Mono](https://fonts.google.com/specimen/JetBrains%20Mono) (`monofont`). 
-
 ## References
+Deboosere, R. et al. (2019). Location, location and professionalization: a multilevel hedonic analysis of Airbnb listing prices and revenue, Regional Studies, Regional Science, 6(1), 143–156. 
+
+Georgie Cosh, G.L.A., (2020). Short-term and holiday letting in London. GLA Housing and Land.
 
 Wang, Y. et al., (2024). The challenges of measuring the short-term rental market: an analysis of open data on Airbnb activity, Housing Studies. Routledge, 39, 9, 2260–2279.
 
-Georgie Cosh, G.L.A., (2020). Short-term and holiday letting in London. GLA Housing and Land.
